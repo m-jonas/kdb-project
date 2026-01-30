@@ -4,4 +4,4 @@ Start TickerPlant (TP) on WSL:
 
  Start RDB on WSL:
 
-  q r.q -p 5011
+q r.q -p 5011
