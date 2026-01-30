@@ -51,7 +51,7 @@ upd:{[t;x]
 
 / 4. Connect to Tickerplant
 / Default port 5010
-if[not system"p"; system"p 5012]; / CEP runs on port 5012
+if not system"p"; system"p 5012]; / CEP runs on port 5012
 
 h:@[hopen; `:localhost:5010; {0}];
 if[h>0;
