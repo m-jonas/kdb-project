@@ -1,9 +1,12 @@
 / r.q - Real-time Database script
 
 / 1. Configuration: Define where the HDB lives
-/ Tries to read $HDB_PATH. If empty, defaults to a local folder named "hdb"
-hdbroot:hsym `$getenv[`HDB_PATH];
-if[hdbroot~`:; hdbroot:`$":./hdb"];
+/ Check if env var is set and not empty; otherwise default to :./hdb
+envPath:getenv[`HDB_PATH];
+hdbroot:$[count envPath; hsym `$envPath; `:./hdb];
+
+/ Print it so you can verify in the console
+-1 "HDB Root set to: ",string hdbroot;
 
 / 2. Define the update function
 / The TP calls this remotely: upd[tableName; tableData]
