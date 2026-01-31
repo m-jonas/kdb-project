@@ -59,7 +59,6 @@ def on_message(msg):
                     q('.u.upd', kx.SymbolAtom('ticker'), vals, wait=False)
 
                     print(f">>> KDB PUSH SUCCESS: {t['product_id']} @ {price_val}")
-                    # --- FIX END ---
 
                 except Exception as e:
                     print(f"Push Error: {e}")
