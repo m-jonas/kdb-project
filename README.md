@@ -26,6 +26,6 @@ This project is a high-frequency trading (HFT) data pipeline built with **KDB+/q
 5.  **Perform EOD:** `.u.end[.z.D]`
 
 ## Tech Stack
-* **Core:** KDB+ 4.0 (Community Edition), Q Language
-* **Integration:** Python 3.9, PyKX, Websockets
+* **Core:** KDB-X 5.0 (Community Edition), Q Language
+* **Integration:** Python 3.12, PyKX, Websockets
 * **Ops:** WSL, Bash
