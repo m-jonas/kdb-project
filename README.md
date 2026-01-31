@@ -23,6 +23,7 @@ This project is a high-frequency trading (HFT) data pipeline built with **KDB+/q
 2.  **Start RDB:** `q r.q -p 5011`
 3.  **Start CEP Engine:** `q cep.q -p 5012`
 4.  **Start Feed:** `python cb_feedhandler.py`
+5.  **Perform EOD:** `.u.end[.z.D]`
 
 ## Tech Stack
 * **Core:** KDB+ 4.0 (Community Edition), Q Language
