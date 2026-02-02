@@ -1,5 +1,9 @@
 # Real-Time Crypto Analytics Engine (KDB+/q)
 
+## Dashboard Preview
+![Real-Time Dashboard](images/dashboard.png)
+*Live Streamlit dashboard visualizing 1-minute OHLC bars and VWAP from KDB+ CEP engine.*
+
 ## Project Overview
 This project is a high-frequency trading (HFT) data pipeline built with **KDB+/q** and **Python**. It captures live Level 1 market data from Coinbase, persists it to a historical database (HDB), and calculates real-time analytics (VWAP, Order Book Imbalance, and OHLC bars) with microsecond latency.
 
