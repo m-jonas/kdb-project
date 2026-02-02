@@ -1,7 +1,6 @@
 / cep.q - Real-Time Analytics & OHLC Engine
 
 / 1. Configuration
-/ Define 1-minute timespan constant for readability
 ONE_MIN:0D00:01;
 
 / 2. Define Schemas
@@ -10,9 +9,8 @@ vwapState:([sym:`symbol$()]
     totalVal:`float$()
  );
 
-ohlc:([] 
-    time:`timestamp$(); 
-    sym:`symbol$(); 
+/ OHLC Bar Table (Persisted in Memory)
+ohlc:([time:`timespan$(); sym:`symbol$()] 
     open:`float$(); 
     high:`float$(); 
     low:`float$(); 
@@ -30,39 +28,20 @@ calcImbalance:{[bidSize; askSize] (bidSize-askSize)%(bidSize+askSize)};
 / 4. The Update Function (.u.upd)
 upd:{[t;x]
     if[t~`ticker;
-        
-        / --- Part A: Real-Time VWAP (Stateful) ---
+        / A. Real-Time VWAP
         vwapState+::([sym:x`sym] 
             totalVol:x`size; 
             totalVal:x[`price]*x`size
         );
 
-        / --- Part B: Snapshot Analytics ---
-        / We retrieve the updated state to calculate the new VWAP
-        currentVals:vwapState[x`sym];
-        
-        analytics:([]
-            time:.z.T;
-            sym:x`sym;
-            price:x`price;
-            / Safe vectorized lookup
-            vwap:currentVals[`totalVal] % currentVals[`totalVol];
-            imbalance:calcImbalance[x`bidSize;x`askSize]
-        );
-        / show analytics; 
-
-        / --- Part C: OHLC Aggregation (Buffering) ---
-        / Append only the relevant columns to the buffer
+        / B. Buffer for OHLC
         tradeBuffer,::select time, sym, price, size from x;
     ];
  };
 
 / 5. Real-Time Bar Generation (Timer Based)
 .z.ts:{
-    / Use ONE_MIN constant and .z.N (timespan) for accurate masking
     cutoff:ONE_MIN xbar .z.N;
-    
-    / Select completed trades (older than the current minute bucket)
     completed:select from tradeBuffer where time < cutoff;
     
     if[count completed;
@@ -77,10 +56,12 @@ upd:{[t;x]
             by time:(ONE_MIN xbar time), sym 
             from completed;
         
-        -1 ">>> NEW OHLC BAR GENERATED <<<";
-        show bars;
+        / Persist to global table
+        `ohlc upsert bars;
         
-        / Clean up the buffer
+        -1 ">>> OHLC Bar Published: ", string .z.T;
+        
+        / Clean buffer
         delete from `tradeBuffer where time < cutoff;
     ];
  };
@@ -90,5 +71,5 @@ if[not system"p"; system"p 5012"];
 h:@[hopen; `:localhost:5010; {0}];
 if[h>0; h"(.u.sub[`ticker;`])"; -1 "CEP Connected."];
 
-/ 7. Start Timer (Check every 5 seconds)
-\t 5000
+/ 7. Start Timer
+\t 1000
