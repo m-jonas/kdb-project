@@ -96,7 +96,7 @@ while True:
                 height=600
             )
             
-            # FIX: Add a unique key based on time to prevent ID collisions
+            # Add a unique key based on time to prevent ID collisions during live updates
             unique_key = f"chart_{time.time()}"
             st.plotly_chart(fig, width='stretch', key=unique_key)
             
