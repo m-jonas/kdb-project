@@ -39,8 +39,6 @@ async def run_kraken_feed():
             try:
                 msg = await ws.recv()
                 data = json.loads(msg)
-                
-                print(data)
 
                 # Kraken sends updates as a List: [ChannelID, Payload, ChannelName, Pair]
                 if isinstance(data, list):
@@ -79,7 +77,7 @@ async def run_kraken_feed():
                         ]
                         
                         # IPC Call
-                        q(".u.upd", "ticker", [row])
+                        q(".u.upd", kx.SymbolAtom("ticker"), row)
                         
                         # Debug Log (shows source is Kraken)
                         print(f"Kraken -> KDB: {sym} @ {price}")
