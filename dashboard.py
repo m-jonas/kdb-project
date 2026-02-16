@@ -95,7 +95,7 @@ while True:
             
             # FIX: Add a unique key based on time to prevent ID collisions
             unique_key = f"chart_{time.time()}"
-            st.plotly_chart(fig, use_container_width=True, key=unique_key)
+            st.plotly_chart(fig, width='stretch', key=unique_key)
             
             # Data Table (Optional)
             with st.expander("Raw Data (OHLC Table)"):
