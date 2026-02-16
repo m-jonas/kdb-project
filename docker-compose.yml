@@ -1,10 +1,9 @@
-version: '3.8'
-
 services:
   # 1. TP
   tp:
     build: .
     container_name: kdb_tp
+    hostname: ${KDB_HOSTNAME}
     command: q tick.q sym . -p 5010
     ports:
       - "5010:5010"
@@ -20,6 +19,7 @@ services:
   rdb:
     build: .
     container_name: kdb_rdb
+    hostname: ${KDB_HOSTNAME}
     command: q r.q -p 5011
     depends_on:
       - tp
@@ -35,6 +35,7 @@ services:
   cep:
     build: .
     container_name: kdb_cep
+    hostname: ${KDB_HOSTNAME}
     command: q cep.q -p 5012
     depends_on:
       - tp
@@ -53,9 +54,11 @@ services:
     depends_on:
       - tp
     environment:
-      # In Docker, we talk to 'tp' hostname, not localhost
       - TP_HOST=tp 
       - TP_PORT=5010
+      - COINBASE_KEY_FILE=/app/cdp_api_key.json # Tell script where to look
+    volumes:
+      - ./cdp_api_key.json:/app/cdp_api_key.json # Mount the key
     networks:
       - kdb_net
 

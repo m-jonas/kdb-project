@@ -1,5 +1,5 @@
 # Debian based lighweight python
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 # 1. System Dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -9,9 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Setup KDB+
-COPY q /opt/q
+COPY kx /opt/kx
 ENV QHOME=/opt/q
-ENV PATH=$PATH:/opt/q/l64
+ENV PATH=$PATH:/opt/kx/bin/
 
 # 3. Install Python Dependencies
 WORKDIR /app
