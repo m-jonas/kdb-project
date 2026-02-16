@@ -50,10 +50,10 @@ services:
       - kdb_net
 
   # 4. Feed Handler
-  feed:
+  feed-coinbase:
     build: .
     container_name: kdb_feed
-    command: python cb_feedhandler.py
+    command: python coinbase_feedhandler.py
     depends_on:
       - tp
     environment:
@@ -64,6 +64,18 @@ services:
       - ./cdp_api_key.json:/app/cdp_api_key.json
     networks:
       - kdb_net
+
+  feed-kraken:
+      build: .
+      container_name: kdb_feed_kraken
+      command: python kraken_feedhandler.py
+      depends_on:
+        - tp
+      environment:
+        - TP_HOST=tp 
+        - TP_PORT=5010
+      networks:
+        - kdb_net
 
   # 5. Dashboard
   dashboard:

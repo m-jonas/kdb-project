@@ -64,7 +64,21 @@ If you prefer running components individually:
 
 **3. Start CEP Engine**: `q cep.q -p 5012`
 
-**4. Start Feed**: `python cb_feedhandler.py`
+**4. Start Feed**: `python coinbase_feedhandler.py`
+
+## 💾 Data Persistence (HDB)
+The system is designed to save data to disk automatically at midnight. To test this manually (Force EOD):
+
+1.  Attach to the **Tickerplant** container:
+    ```bash
+    docker attach kdb_tp
+    ```
+2.  Run the End-of-Day function:
+    ```q
+    .u.end[.z.D]
+    ```
+    *This triggers the RDB to save in-memory tables to the `hdb/` directory and clear memory.*
+3.  Detach from the container using `Ctrl+P`, then `Ctrl+Q`.
 
 ## ✅ Automated Testing
 This project includes a regression test suite to verify the mathematical accuracy of the analytics engine (VWAP/Imbalance) before deployment.
@@ -88,7 +102,7 @@ Expected Output:
 ├── cep.q               # Complex Event Processing (Analytics)
 ├── tick.q              # Tickerplant (Vanilla kdb+tick)
 ├── r.q                 # Real-Time Database (RDB)
-├── cb_feedhandler.py   # Python WebSocket Ingestion
+├── coinbase_feedhandler.py   # Python WebSocket Ingestion
 ├── dashboard.py        # Streamlit Visualization
 ├── tests.q             # Unit Test Suite
 ├── Dockerfile          # Master Image Definition

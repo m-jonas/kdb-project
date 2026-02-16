@@ -63,7 +63,7 @@ def on_message(msg):
                     # Resulting Data in TP: (Timestamp; Sym; Price; ...; AskSize) -> 8 Cols
                     q('.u.upd', kx.SymbolAtom('ticker'), vals, wait=False)
 
-                    print(f">>> KDB PUSH SUCCESS: {t['product_id']} @ {price_val}")
+                    print(f"Coinbase -> KDB: {t['product_id']} @ {price_val}")
 
                 except Exception as e:
                     print(f"Push Error: {e}")
