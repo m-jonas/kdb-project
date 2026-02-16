@@ -62,7 +62,7 @@ upd:{[t;x]
         -1 ">>> OHLC Bar Published: ", string .z.T;
         
         / Clean buffer
-        delete from `tradeBuffer where time < cutoff;
+        tradeBuffer::delete from tradeBuffer where time < cutoff;
     ];
  };
 
