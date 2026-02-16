@@ -29,7 +29,7 @@ graph TD
     E -->|Query| G[Streamlit Dashboard]
 ```
 
-🚀 Quick Start (Docker)
+## 🚀 Quick Start (Docker)
 The easiest way to run the stack is via Docker Compose.
 
 Prerequisites:
@@ -51,20 +51,20 @@ Create a .env file in the root directory to set your local hostname (required fo
 `docker-compose build
 docker-compose up`
 
-Access the Dashboard at http://localhost:8501
+* *Access the Dashboard at http://localhost:8501* *
 
-🛠️ Manual Start (WSL/Linux)
+## 🛠️ Manual Start (WSL/Linux)
 If you prefer running components individually:
 
-Start Tickerplant: q tick.q sym . -p 5010
+**1. Start Tickerplant**: q tick.q sym . -p 5010
 
-Start RDB: q r.q -p 5011
+**2. Start RDB**: q r.q -p 5011
 
-Start CEP Engine: q cep.q -p 5012
+**3. Start CEP Engine**: q cep.q -p 5012
 
-Start Feed: python cb_feedhandler.py
+**4. Start Feed**: python cb_feedhandler.py
 
-✅ Automated Testing
+## ✅ Automated Testing
 This project includes a regression test suite to verify the mathematical accuracy of the analytics engine (VWAP/Imbalance) before deployment.
 
 Run Unit Tests:
@@ -78,7 +78,7 @@ Expected Output:
 [PASS] VWAP Logic Correct (105.0)
 [PASS] OHLC Buffer Ingestion Correct (2 rows)`
 
-📂 Project Structure
+## 📂 Project Structure
 
 `├── cep.q               # Complex Event Processing (Analytics)
 ├── tick.q              # Tickerplant (Vanilla kdb+tick)
