@@ -5,8 +5,9 @@ import os
 
 # 1. Credentials
 # Credentials are loaded from a local json file.
-with open("C:/Users/jonas/Downloads/cdp_api_key.json", "r") as f:
-    api_credentials = json.load(f) 
+key_path = os.getenv("COINBASE_KEY_FILE", "cdp_api_key.json")
+with open(key_path, "r") as f:
+    api_credentials = json.load(f)
 
 name = api_credentials["name"]
 privateKey = api_credentials["privateKey"]
