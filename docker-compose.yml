@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # 1. TP
+  tp:
+    build: .
+    container_name: kdb_tp
+    command: q tick.q sym . -p 5010
+    ports:
+      - "5010:5010"
+    volumes:
+      # Mount the license file from host to container
+      - ./kc.lic:/opt/q/kc.lic
+      # Persist the TP log file to disk
+      - ./tplog:/app/tplog
+    networks:
+      - kdb_net
+
+  # 2. RDB
+  rdb:
+    build: .
+    container_name: kdb_rdb
+    command: q r.q -p 5011
+    depends_on:
+      - tp
+    environment:
+      - HDB_PATH=/app/hdb
+    volumes:
+      - ./kc.lic:/opt/q/kc.lic
+      - ./hdb:/app/hdb
+    networks:
+      - kdb_net
+
+  # 3. CEP Engine
+  cep:
+    build: .
+    container_name: kdb_cep
+    command: q cep.q -p 5012
+    depends_on:
+      - tp
+    volumes:
+      - ./kc.lic:/opt/q/kc.lic
+    ports:
+      - "5012:5012" # Expose for Streamlit Dashboard
+    networks:
+      - kdb_net
+
+  # 4. Feed Handler
+  feed:
+    build: .
+    container_name: kdb_feed
+    command: python cb_feedhandler.py
+    depends_on:
+      - tp
+    environment:
+      # In Docker, we talk to 'tp' hostname, not localhost
+      - TP_HOST=tp 
+      - TP_PORT=5010
+    networks:
+      - kdb_net
+
+  # 5. Dashboard
+  dashboard:
+    build: .
+    container_name: kdb_dash
+    command: streamlit run dashboard.py --server.port 8501
+    depends_on:
+      - cep
+    ports:
+      - "8501:8501"
+    networks:
+      - kdb_net
+
+networks:
+  kdb_net:
+    driver: bridge
