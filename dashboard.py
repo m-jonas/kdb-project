@@ -34,17 +34,47 @@ else:
 auto_refresh = st.sidebar.checkbox("Auto-Refresh (5s)", value=True)
 
 # 3. Fetch Data Function
+# Initialize session state for incremental fetching
+if 'ohlc_data' not in st.session_state:
+    st.session_state['ohlc_data'] = pd.DataFrame()
+
 def fetch_data():
     if not q:
         return pd.DataFrame()
     
     try:
-        # Query the 'ohlc' table from the CEP engine
-        res = q("0!ohlc")
-        df = res.pd()
+        new_data = pd.DataFrame()
+
+        # Incremental fetch strategy
+        if not st.session_state['ohlc_data'].empty:
+            # Get the last timestamp from our local cache
+            last_time = st.session_state['ohlc_data']['time'].max()
+
+            # Convert to python timedelta for compatibility
+            last_time_py = last_time.to_pytimedelta()
+
+            # Query only new rows
+            # Using parameterized query for safety
+            res = q('{0!select from ohlc where time > x}', last_time_py)
+            new_data = res.pd()
+        else:
+            # Initial full fetch
+            res = q("0!ohlc")
+            new_data = res.pd()
+
+        # Update local cache if we have new data
+        if not new_data.empty:
+            st.session_state['ohlc_data'] = pd.concat([st.session_state['ohlc_data'], new_data], ignore_index=True)
         
-        if df.empty:
-            return df
+        # Limit cache size to prevent unbounded memory growth (e.g., last 10,000 rows ~ 1 week of 1-min bars)
+        if len(st.session_state['ohlc_data']) > 10000:
+            st.session_state['ohlc_data'] = st.session_state['ohlc_data'].iloc[-10000:]
+
+        if st.session_state['ohlc_data'].empty:
+            return pd.DataFrame()
+
+        # Create a working copy for display
+        df = st.session_state['ohlc_data'].copy()
 
         # Convert KDB timespan (Timedelta) to full datetime
         # We take "Midnight Today" and add the timespan duration
