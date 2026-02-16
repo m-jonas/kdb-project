@@ -27,6 +27,7 @@ graph TD
     C -->|Upd| E[CEP Engine :5012]
     D -->|End of Day| F[(HDB Disk)]
     E -->|Query| G[Streamlit Dashboard]
+```
 
 🚀 Quick Start (Docker)
 The easiest way to run the stack is via Docker Compose.
