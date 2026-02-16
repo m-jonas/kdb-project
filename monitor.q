@@ -1,4 +1,4 @@
-/ monitor.q - Production Prometheus Exporter
+/ monitor.q - Universal Prometheus Exporter
 
 / 1. Force text/plain for `txt
 .h.ty[`txt]:"text/plain";
@@ -6,15 +6,32 @@
 / 2. Initialize Message Counter
 if[not `msgs in key `.mon; .mon.msgs:0];
 
-/ 3. Create a "Hook" into the Update Function (.u.upd)
-/ This wraps the original function to count every update before processing it
-if[not `upd_orig in key `.u; 
-    .u.upd_orig:.u.upd;
-    .u.upd:{[t;x] 
-        .mon.msgs+:1;       / Increment counter
-        .u.upd_orig[t;x]    / Call original function
-    }
- ];
+/ 3. Universal Function Wrapper
+/ Tickerplant uses .u.upd | RDB uses upd (global)
+
+/ Case A: Tickerplant (.u.upd)
+if[`upd in key `.u;
+    if[not `upd_orig in key `.u;
+        .u.upd_orig:.u.upd;
+        .u.upd:{[t;x] 
+            .mon.msgs+:1;
+            .u.upd_orig[t;x]
+        };
+        -1 ">>> Monitor: Wrapped .u.upd (TP Mode)";
+    ];
+];
+
+/ Case B: RDB/CEP (global upd)
+if[`upd in key `.;
+    if[not `upd_orig in key `.;
+        .upd_orig:upd;
+        upd:{[t;x] 
+            .mon.msgs+:1; 
+            .upd_orig[t;x]
+        };
+        -1 ">>> Monitor: Wrapped global upd (RDB Mode)";
+    ];
+];
 
 .z.ph:{[x]
   url:first x;
@@ -34,7 +51,7 @@ if[not `upd_orig in key `.u;
   metrics,:enlist "kdb_client_count ",string count key .z.W;
   metrics,:enlist "kdb_msg_count ",string .mon.msgs;
   
-  / --- Safe Table Counts (Will be 0 on TP, High on RDB) ---
+  / --- Safe Table Counts ---
   rows:0;
   if[`ticker in tables[]; rows:count value `ticker];
   metrics,:enlist "kdb_table_rows{table=\"ticker\"} ",string rows;
@@ -49,4 +66,4 @@ if[not `upd_orig in key `.u;
   .h.hy[`txt; txt]
  };
 
--1 ">>> Prometheus Exporter loaded (Silent Mode + Msg Counter).";
+-1 ">>> Prometheus Exporter loaded.";
