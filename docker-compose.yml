@@ -29,6 +29,8 @@ services:
     volumes:
       - ./kc.lic:/opt/q/kc.lic
       - ./hdb:/app/hdb
+    ports:
+      - "5011:5011"
     networks:
       - kdb_net
 
