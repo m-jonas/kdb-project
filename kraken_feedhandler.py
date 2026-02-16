@@ -39,6 +39,8 @@ async def run_kraken_feed():
             try:
                 msg = await ws.recv()
                 data = json.loads(msg)
+                
+                print(data)
 
                 # Kraken sends updates as a List: [ChannelID, Payload, ChannelName, Pair]
                 if isinstance(data, list):
@@ -66,14 +68,14 @@ async def run_kraken_feed():
                         # 4. PUBLISH TO KDB+
                         # Schema: (time; sym; price; size; bid; ask; bidSize; askSize)
                         row = [
-                            datetime.now(),
-                            kx.SymbolAtom(sym),
-                            price,
-                            size,
-                            bid,
-                            ask,
-                            bid_size,
-                            ask_size
+                            # datetime.now(),
+                            kx.List([kx.SymbolAtom(sym)]),
+                            kx.List([price]),
+                            kx.List([size]),
+                            kx.List([bid]),
+                            kx.List([ask]),
+                            kx.List([bid_size]),
+                            kx.List([ask_size])
                         ]
                         
                         # IPC Call
