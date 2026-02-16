@@ -1,36 +1,52 @@
-/ monitor.q - Advanced Prometheus Exporter
-/ Exposes metrics at http://localhost:PORT/metrics
+/ monitor.q - Production Prometheus Exporter
 
-/ 1. Explicitly define the MIME type for `txt to be text/plain
-/ (This overrides any defaults to ensure Prometheus is happy)
+/ 1. Force text/plain for `txt
 .h.ty[`txt]:"text/plain";
 
-.z.ph:{[x]
-  if[not "/metrics"~first x; :.h.hy[`html; "Go to /metrics"]];
+/ 2. Initialize Message Counter
+if[not `msgs in key `.mon; .mon.msgs:0];
 
-  / --- 1. System Stats ---
+/ 3. Create a "Hook" into the Update Function (.u.upd)
+/ This wraps the original function to count every update before processing it
+if[not `upd_orig in key `.u; 
+    .u.upd_orig:.u.upd;
+    .u.upd:{[t;x] 
+        .mon.msgs+:1;       / Increment counter
+        .u.upd_orig[t;x]    / Call original function
+    }
+ ];
+
+.z.ph:{[x]
+  url:first x;
+
+  / Universal Match
+  if[not any url like/:("/metrics*"; "metrics*"); 
+      :.h.hy[`html; "Go to /metrics. You requested: ",url]
+  ];
+
+  / --- Gather Stats ---
   w:.Q.w[];
   metrics:();
-  metrics,:("kdb_mem_used_bytes ",string `int$w`used);
-  metrics,:("kdb_mem_heap_bytes ",string `int$w`heap);
-  metrics,:("kdb_global_vars ",string count key `.q);
   
-  / --- 2. Client Stats ---
-  / Count keys in .z.W (Active handles)
-  metrics,:("kdb_client_count ",string count key .z.W);
+  metrics,:enlist "kdb_mem_used_bytes ",string `int$w`used;
+  metrics,:enlist "kdb_mem_heap_bytes ",string `int$w`heap;
+  metrics,:enlist "kdb_global_vars ",string count key `.q;
+  metrics,:enlist "kdb_client_count ",string count key .z.W;
+  metrics,:enlist "kdb_msg_count ",string .mon.msgs;
   
-  / --- 3. Data Stats (Safe Check) ---
-  / Check if 'ticker' table exists before counting to avoid errors on startup
-  rows:$[not null name:first `ticker intersect tables`.; count value name; 0];
-  metrics,:("kdb_table_rows{table=\"ticker\"} ",string rows);
+  / --- Safe Table Counts (Will be 0 on TP, High on RDB) ---
+  rows:0;
+  if[`ticker in tables[]; rows:count value `ticker];
+  metrics,:enlist "kdb_table_rows{table=\"ticker\"} ",string rows;
   
-  / Check symbol count (Enum health)
-  syms:$[not null name:first `sym intersect key`.; count value name; 0];
-  metrics,:("kdb_sym_count ",string syms);
+  / --- Safe Symbol Count ---
+  syms:0;
+  if[`sym in key `.; syms:count value `sym];
+  metrics,:enlist "kdb_sym_count ",string syms;
 
-  / --- 4. Format & Send ---
+  / --- Response ---
   txt:"\n" sv metrics;
   .h.hy[`txt; txt]
  };
 
--1 ">>> Prometheus Exporter loaded (text/plain).";
+-1 ">>> Prometheus Exporter loaded (Silent Mode + Msg Counter).";

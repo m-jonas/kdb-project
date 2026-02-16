@@ -57,3 +57,6 @@ if[h>0;
  ];
 
 if[h=0; -1 "Warning: Could not connect to TP. RDB is in standalone mode."];
+
+/ Load the Prometheus Exporter
+\l monitor.q
