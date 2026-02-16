@@ -65,7 +65,7 @@ async def run_kraken_feed():
 
                         # 4. PUBLISH TO KDB+
                         # Schema: (time; sym; price; size; bid; ask; bidSize; askSize)
-                        row = [
+                        vals = [
                             # datetime.now(),
                             kx.List([kx.SymbolAtom(sym)]),
                             kx.List([price]),
@@ -77,7 +77,7 @@ async def run_kraken_feed():
                         ]
                         
                         # IPC Call
-                        q(".u.upd", kx.SymbolAtom("ticker"), row)
+                        q(".u.upd", kx.SymbolAtom("ticker"), vals)
                         
                         # Debug Log (shows source is Kraken)
                         print(f"Kraken -> KDB: {sym} @ {price}")
