@@ -25,6 +25,7 @@ services:
       - tp
     environment:
       - HDB_PATH=/app/hdb
+      - TP_HOST=tp
     volumes:
       - ./kc.lic:/opt/q/kc.lic
       - ./hdb:/app/hdb
@@ -39,6 +40,8 @@ services:
     command: q cep.q -p 5012
     depends_on:
       - tp
+    environment:
+      - TP_HOST=tp
     volumes:
       - ./kc.lic:/opt/q/kc.lic
     ports:
@@ -69,6 +72,8 @@ services:
     command: streamlit run dashboard.py --server.port 8501
     depends_on:
       - cep
+    environment:
+      - TP_HOST=tp
     ports:
       - "8501:8501"
     networks:

@@ -17,7 +17,11 @@ print("--- Step 1: Connecting to KDB+ ---")
 try:
     os.environ['PYKX_SKIP_SIGNAL_HANDLING'] = '1' 
     # connecting to TickerPlant
-    q = kx.SyncQConnection(host='127.0.0.1', port=5010)
+    tp_host = os.getenv('TP_HOST', '127.0.0.1')
+    tp_port = int(os.getenv('TP_PORT', 5010))
+
+    print(f"Connecting to TP at {tp_host}:{tp_port}...")
+    q = kx.SyncQConnection(host=tp_host, port=tp_port)
     print("KDB+ Connection Established.")
 except Exception as e:
     print(f"KDB+ Connection Failed: {e}")

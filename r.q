@@ -46,7 +46,11 @@ upd:insert;
 / We check if connection exists before subscribing
 if[not system"p"; system"p 5011"]; / RDB listens on 5011
 
-h:@[hopen; `:localhost:5010; {0}];
+tpHost:getenv[`TP_HOST];
+/ Default to `:localhost:5010 if env var is missing
+tpConnect:$[count tpHost; hsym `$(tpHost,":5010"); `:localhost:5010];
+-1 "Connecting to TP at ",string tpConnect;
+h:@[hopen; tpConnect; {0}];
 if[h>0; 
   h"(.u.sub[`;`])"; 
   -1 "RDB connected to TP on port 5010 and subscribed to all symbols.";

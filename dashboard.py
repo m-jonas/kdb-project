@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime
 import time
+import os
 
 # Page Configuration
 st.set_page_config(page_title="KDB+ Crypto Engine", layout="wide")
@@ -14,7 +15,8 @@ st.title("⚡ Real-Time KDB+ Crypto Dashboard")
 def get_connection():
     try:
         # Force IPv4 connection to KDB+
-        return kx.SyncQConnection(host='127.0.0.1', port=5012)
+        cep_host = os.getenv('CEP_HOST', '127.0.0.1')
+        return kx.SyncQConnection(host=cep_host, port=5012)
     except Exception as e:
         st.error(f"Failed to connect to CEP Engine: {e}")
         return None
