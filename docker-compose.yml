@@ -91,6 +91,26 @@ services:
     networks:
       - kdb_net
 
+  prometheus:
+    image: prom/prometheus
+    container_name: kdb_prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - kdb_net
+
+  grafana:
+    image: grafana/grafana
+    container_name: kdb_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - kdb_net
+
 networks:
   kdb_net:
     driver: bridge
