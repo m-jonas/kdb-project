@@ -68,7 +68,10 @@ upd:{[t;x]
 
 / 6. Connect
 if[not system"p"; system"p 5012"];
-h:@[hopen; `:localhost:5010; {0}];
+tpHost:getenv[`TP_HOST];
+tpConnect:$[count tpHost; hsym `$(tpHost,":5010"); `:localhost:5010];
+-1 "Connecting to TP at ",string tpConnect;
+h:@[hopen; tpConnect; {0}];
 if[h>0; h"(.u.sub[`ticker;`])"; -1 "CEP Connected."];
 
 / 7. Start Timer

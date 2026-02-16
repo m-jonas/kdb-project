@@ -5,8 +5,9 @@ import os
 
 # 1. Credentials
 # Credentials are loaded from a local json file.
-with open("C:/Users/jonas/Downloads/cdp_api_key.json", "r") as f:
-    api_credentials = json.load(f) 
+key_path = os.getenv("COINBASE_KEY_FILE", "cdp_api_key.json")
+with open(key_path, "r") as f:
+    api_credentials = json.load(f)
 
 name = api_credentials["name"]
 privateKey = api_credentials["privateKey"]
@@ -16,7 +17,11 @@ print("--- Step 1: Connecting to KDB+ ---")
 try:
     os.environ['PYKX_SKIP_SIGNAL_HANDLING'] = '1' 
     # connecting to TickerPlant
-    q = kx.SyncQConnection(host='127.0.0.1', port=5010)
+    tp_host = os.getenv('TP_HOST', '127.0.0.1')
+    tp_port = int(os.getenv('TP_PORT', 5010))
+
+    print(f"Connecting to TP at {tp_host}:{tp_port}...")
+    q = kx.SyncQConnection(host=tp_host, port=tp_port)
     print("KDB+ Connection Established.")
 except Exception as e:
     print(f"KDB+ Connection Failed: {e}")

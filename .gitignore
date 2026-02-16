@@ -209,3 +209,7 @@ __marimo__/
 # miscellaneous
 sym2026.*
 hdb/[0-9]*
+cdp_api_key.json
+kx*
+kc.lic
+.env

@@ -1,0 +1,84 @@
+services:
+  # 1. TP
+  tp:
+    build: .
+    container_name: kdb_tp
+    hostname: ${KDB_HOSTNAME}
+    command: q tick.q sym . -p 5010
+    ports:
+      - "5010:5010"
+    volumes:
+      # Mount the license file from host to container
+      - ./kc.lic:/opt/q/kc.lic
+      # Persist the TP log file to disk
+      - ./tplog:/app/tplog
+    networks:
+      - kdb_net
+
+  # 2. RDB
+  rdb:
+    build: .
+    container_name: kdb_rdb
+    hostname: ${KDB_HOSTNAME}
+    command: q r.q -p 5011
+    depends_on:
+      - tp
+    environment:
+      - HDB_PATH=/app/hdb
+      - TP_HOST=tp
+    volumes:
+      - ./kc.lic:/opt/q/kc.lic
+      - ./hdb:/app/hdb
+    networks:
+      - kdb_net
+
+  # 3. CEP Engine
+  cep:
+    build: .
+    container_name: kdb_cep
+    hostname: ${KDB_HOSTNAME}
+    command: q cep.q -p 5012
+    depends_on:
+      - tp
+    environment:
+      - TP_HOST=tp
+    volumes:
+      - ./kc.lic:/opt/q/kc.lic
+    ports:
+      - "5012:5012"
+    networks:
+      - kdb_net
+
+  # 4. Feed Handler
+  feed:
+    build: .
+    container_name: kdb_feed
+    command: python cb_feedhandler.py
+    depends_on:
+      - tp
+    environment:
+      - TP_HOST=tp 
+      - TP_PORT=5010
+      - COINBASE_KEY_FILE=/app/cdp_api_key.json
+    volumes:
+      - ./cdp_api_key.json:/app/cdp_api_key.json
+    networks:
+      - kdb_net
+
+  # 5. Dashboard
+  dashboard:
+    build: .
+    container_name: kdb_dash
+    command: streamlit run dashboard.py --server.port 8501
+    depends_on:
+      - cep
+    ports:
+      - "8501:8501"
+    environment:
+      - CEP_HOST=cep
+    networks:
+      - kdb_net
+
+networks:
+  kdb_net:
+    driver: bridge
