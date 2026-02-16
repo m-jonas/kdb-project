@@ -64,7 +64,7 @@ If you prefer running components individually:
 
 **3. Start CEP Engine**: `q cep.q -p 5012`
 
-**4. Start Feed**: `python cb_feedhandler.py`
+**4. Start Feed**: `python coinbase_feedhandler.py`
 
 ## ✅ Automated Testing
 This project includes a regression test suite to verify the mathematical accuracy of the analytics engine (VWAP/Imbalance) before deployment.
@@ -88,7 +88,7 @@ Expected Output:
 ├── cep.q               # Complex Event Processing (Analytics)
 ├── tick.q              # Tickerplant (Vanilla kdb+tick)
 ├── r.q                 # Real-Time Database (RDB)
-├── cb_feedhandler.py   # Python WebSocket Ingestion
+├── coinbase_feedhandler.py   # Python WebSocket Ingestion
 ├── dashboard.py        # Streamlit Visualization
 ├── tests.q             # Unit Test Suite
 ├── Dockerfile          # Master Image Definition
