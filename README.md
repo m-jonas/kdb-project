@@ -48,8 +48,10 @@ Edit .env and set KDB_HOSTNAME to your machine's hostname (e.g., 'my-laptop')
 
 2. Build & Run
 
-`docker-compose build`
-`docker-compose up`
+```
+docker-compose build
+docker-compose up
+```
 
 *Access the Dashboard at http://localhost:8501* *
 
@@ -73,14 +75,17 @@ Run Unit Tests:
 
 Expected Output:
 
-`>>> RUNNING UNIT TESTS <<<
+```
+>>> RUNNING UNIT TESTS <<<
 [PASS] Imbalance Calculation Correct (-0.5)
 [PASS] VWAP Logic Correct (105.0)
-[PASS] OHLC Buffer Ingestion Correct (2 rows)`
+[PASS] OHLC Buffer Ingestion Correct (2 rows)
+```
 
 ## 📂 Project Structure
 
-`├── cep.q               # Complex Event Processing (Analytics)
+```
+├── cep.q               # Complex Event Processing (Analytics)
 ├── tick.q              # Tickerplant (Vanilla kdb+tick)
 ├── r.q                 # Real-Time Database (RDB)
 ├── cb_feedhandler.py   # Python WebSocket Ingestion
@@ -88,4 +93,5 @@ Expected Output:
 ├── tests.q             # Unit Test Suite
 ├── Dockerfile          # Master Image Definition
 ├── docker-compose.yml  # Microservices Orchestration
-└── hdb/                # Historical Database (Partitioned)`
+└── hdb/                # Historical Database (Partitioned)
+```
