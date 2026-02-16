@@ -61,7 +61,7 @@ upd:{[t;x]
         
         -1 ">>> OHLC Bar Published: ", string .z.T;
         
-        / Clean buffer
+        / Clean buffer (Explicit global assignment to fix memory leak)
         tradeBuffer::delete from tradeBuffer where time < cutoff;
     ];
  };
