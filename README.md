@@ -36,33 +36,33 @@ Prerequisites:
 
 Docker Desktop installed.
 
-A valid kc.lic (KDB+ License) placed in the root directory.
+A valid `kc.lic` (KDB+ License) placed in the root directory.
 
-A cdp_api_key.json (Coinbase Credentials) in the root directory.
+A `cdp_api_key.json` (Coinbase Credentials) in the root directory.
 
 1. Configure Environment
 Create a .env file in the root directory to set your local hostname (required for KDB+ license validation).
 
-`cp .env.example .env
-# Edit .env and set KDB_HOSTNAME to your machine's hostname (e.g., 'laptop-jonas')`
+`cp .env.example .env`
+Edit .env and set KDB_HOSTNAME to your machine's hostname (e.g., 'my-laptop')
 
 2. Build & Run
 
-`docker-compose build
-docker-compose up`
+`docker-compose build`
+`docker-compose up`
 
 * *Access the Dashboard at http://localhost:8501* *
 
 ## 🛠️ Manual Start (WSL/Linux)
 If you prefer running components individually:
 
-**1. Start Tickerplant**: q tick.q sym . -p 5010
+**1. Start Tickerplant**: `q tick.q sym . -p 5010`
 
-**2. Start RDB**: q r.q -p 5011
+**2. Start RDB**: `q r.q -p 5011`
 
-**3. Start CEP Engine**: q cep.q -p 5012
+**3. Start CEP Engine**: `q cep.q -p 5012`
 
-**4. Start Feed**: python cb_feedhandler.py
+**4. Start Feed**: `python cb_feedhandler.py`
 
 ## ✅ Automated Testing
 This project includes a regression test suite to verify the mathematical accuracy of the analytics engine (VWAP/Imbalance) before deployment.
