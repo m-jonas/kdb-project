@@ -51,7 +51,7 @@ Edit .env and set KDB_HOSTNAME to your machine's hostname (e.g., 'my-laptop')
 `docker-compose build`
 `docker-compose up`
 
-* *Access the Dashboard at http://localhost:8501* *
+*Access the Dashboard at http://localhost:8501* *
 
 ## 🛠️ Manual Start (WSL/Linux)
 If you prefer running components individually:
