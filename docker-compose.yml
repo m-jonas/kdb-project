@@ -45,7 +45,7 @@ services:
     volumes:
       - ./kc.lic:/opt/q/kc.lic
     ports:
-      - "5012:5012" # Expose for Streamlit Dashboard
+      - "5012:5012"
     networks:
       - kdb_net
 
@@ -59,9 +59,9 @@ services:
     environment:
       - TP_HOST=tp 
       - TP_PORT=5010
-      - COINBASE_KEY_FILE=/app/cdp_api_key.json # Tell script where to look
+      - COINBASE_KEY_FILE=/app/cdp_api_key.json
     volumes:
-      - ./cdp_api_key.json:/app/cdp_api_key.json # Mount the key
+      - ./cdp_api_key.json:/app/cdp_api_key.json
     networks:
       - kdb_net
 
@@ -75,7 +75,7 @@ services:
     ports:
       - "8501:8501"
     environment:
-      - CEP_HOST=cep  # <--- CRITICAL: This tells Python where CEP is
+      - CEP_HOST=cep
     networks:
       - kdb_net
 
