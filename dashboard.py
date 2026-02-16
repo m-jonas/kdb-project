@@ -16,6 +16,7 @@ def get_connection():
     try:
         # Force IPv4 connection to KDB+
         cep_host = os.getenv('CEP_HOST', '127.0.0.1')
+        print(f"DEBUG: Dashboard attempting to connect to: {cep_host}:5012")
         return kx.SyncQConnection(host=cep_host, port=5012)
     except Exception as e:
         st.error(f"Failed to connect to CEP Engine: {e}")

@@ -72,10 +72,10 @@ services:
     command: streamlit run dashboard.py --server.port 8501
     depends_on:
       - cep
-    environment:
-      - TP_HOST=tp
     ports:
       - "8501:8501"
+    environment:
+      - CEP_HOST=cep  # <--- CRITICAL: This tells Python where CEP is
     networks:
       - kdb_net
 
