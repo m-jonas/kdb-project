@@ -47,6 +47,8 @@ if[not system"t";system"t 1000";
 \d .
 .u.tick[src;.z.x 1];
 
+\l monitor.q
+
 \
  globals used
  .u.w - dictionary of tables->(handle;syms)
