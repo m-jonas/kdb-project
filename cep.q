@@ -29,10 +29,9 @@ calcImbalance:{[bidSize; askSize] (bidSize-askSize)%(bidSize+askSize)};
 upd:{[t;x]
     if[t~`ticker;
         / A. Real-Time VWAP
-        vwapState+::([sym:x`sym] 
-            totalVol:x`size; 
-            totalVal:x[`price]*x`size
-        );
+        / Aggregate incoming updates by symbol to handle batch updates with duplicate symbols
+        agg:select totalVol:sum size, totalVal:sum price*size by sym from x;
+        vwapState+::agg;
 
         / B. Buffer for OHLC
         tradeBuffer,::select time, sym, price, size from x;
