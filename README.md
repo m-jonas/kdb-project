@@ -80,6 +80,20 @@ The system is designed to save data to disk automatically at midnight. To test t
     *This triggers the RDB to save in-memory tables to the `hdb/` directory and clear memory.*
 3.  Detach from the container using `Ctrl+P`, then `Ctrl+Q`.
 
+To perform EOD on Docker:
+
+1.  Connect to the Real RDB (running on port 5011 inside the container)
+    
+        `h:hopen 5011`
+
+2.  Send the End-of-Day command remotely
+    
+        `h".u.end[.z.D]"`
+
+3.  (Optional) Check if it worked by asking for the row count of a table
+    
+        `h"count ticker"`
+
 ## ✅ Automated Testing
 This project includes a regression test suite to verify the mathematical accuracy of the analytics engine (VWAP/Imbalance) before deployment.
 
