@@ -52,5 +52,29 @@ countBuffer:count tradeBuffer;
 if[countBuffer = 2; -1 "[PASS] OHLC Buffer Ingestion Correct (2 rows)"];
 if[not countBuffer = 2; -1 "[FAIL] OHLC Buffer. Expected 2 rows, got ",string countBuffer];
 
+/ 5. Test: Batch Update with Duplicate Symbols
+/ Scenario: Batch update with 2 trades for same symbol.
+/ Trade C: Price 100, Size 10
+/ Trade D: Price 100, Size 10
+/ Total Val: 2000, Total Vol: 20
+/ Should not crash with duplicate key error.
+
+mockBatch:{[p; s]
+  ([] time:2#.z.N; sym:2#`BATCH_TEST; price:2#p; size:2#s;
+      bid:2#0f; ask:2#0f; bidSize:2#0f; askSize:2#0f)
+ };
+
+/ Inject Batch
+/ This will fail with 'dup key' without the fix in cep.q
+@[{upd[`ticker; x]; -1 "[PASS] Batch Update (No Crash)"}; mockBatch[100f; 10f]; {-1 "[FAIL] Batch Update Crashed: ",x}];
+
+/ Check Result if it didn't crash
+r:select totalVal, totalVol from vwapState where sym=`BATCH_TEST;
+if[count r;
+    currVWAP:first[r`totalVal] % first[r`totalVol];
+    if[currVWAP = 100f; -1 "[PASS] Batch VWAP Logic Correct (100.0)"];
+    if[not currVWAP = 100f; -1 "[FAIL] Batch VWAP Logic. Expected 100.0, got ",string currVWAP];
+ ];
+
 -1 ">>> TESTS COMPLETE <<<";
 exit 0;
