@@ -12,6 +12,7 @@ services:
       - ./kc.lic:/opt/q/kc.lic
       # Persist the TP log file to disk
       - ./tplog:/app/tplog
+      - ./monitor.q:/app/monitor.q
     networks:
       - kdb_net
 
@@ -29,8 +30,6 @@ services:
     volumes:
       - ./kc.lic:/opt/q/kc.lic
       - ./hdb:/app/hdb
-    ports:
-      - "5011:5011"
     networks:
       - kdb_net
 
