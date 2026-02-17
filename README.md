@@ -82,7 +82,7 @@ The system is designed to save data to disk automatically at midnight. To test t
 
 To perform EOD on Docker:
 
-1.  Connect to the Real RDB (running on port 5011 inside the container)
+1.  Connect to the "kdb_rdb" process (running on port 5011 inside the container)
     
         `h:hopen 5011`
 
