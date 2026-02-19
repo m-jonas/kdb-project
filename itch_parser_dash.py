@@ -1,6 +1,8 @@
 import struct
 import sys
 import datetime
+import time
+import os
 
 # --- CONFIG ---
 FILE_PATH = 'data/01302019.NASDAQ_ITCH50'
@@ -154,21 +156,39 @@ def parse_itch_file(filepath):
 
             msg_count += 1
             
+            
             # --- BBO CALCULATION ---
-            # If we processed an AAPL event (timestamp is not empty)
             if timestamp:
-                # Find the highest bid and lowest ask
                 best_bid = max(bids.keys()) if bids else 0.0
                 best_ask = min(asks.keys()) if asks else 0.0
-                
                 current_bbo = (best_bid, best_ask)
                 
-                # Only print if the top of the book has changed!
                 if current_bbo != prev_bbo:
-                    bid_size = bids.get(best_bid, 0)
-                    ask_size = asks.get(best_ask, 0)
-                    print(f"[{timestamp}] BBO | Bid: {bid_size:4} @ ${best_bid:<8.4f} | Ask: {ask_size:4} @ ${best_ask:<8.4f}")
+                    # Clear the terminal screen to create a static dashboard effect
+                    os.system('cls' if os.name == 'nt' else 'clear')
+                    
+                    print(f"=== {TARGET_TICKER} ORDER BOOK @ {timestamp} ===")
+                    
+                    # 1. Sort and print top 5 ASKS
+                    # In a trading terminal, the lowest ask is just above the spread
+                    top_asks = sorted(asks.items())[:5]
+                    for p, s in reversed(top_asks):
+                        print(f"  ASK | {s:5} shrs @ ${p:<8.4f}")
+                        
+                    print("  --------------------------------")
+                    
+                    # 2. Sort and print top 5 BIDS
+                    # The highest bid is just below the spread
+                    top_bids = sorted(bids.items(), reverse=True)[:5]
+                    for p, s in top_bids:
+                        print(f"  BID | {s:5} shrs @ ${p:<8.4f}")
+                        
+                    print("====================================")
+                    
                     prev_bbo = current_bbo
+                    
+                    # Pause for 100 milliseconds so your eyes can read it
+                    time.sleep(0.1)
 
     except KeyboardInterrupt:
         print("\nStopping...")
