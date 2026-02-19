@@ -35,7 +35,8 @@ def parse_itch_file(filepath):
                 print("End of file reached.")
                 break
             
-            # Unpack the 2-byte integer (Big-Endian Unsigned Short)
+            # Unpack the 2-byte integer
+            # Big-Endian Unsigned Short for NASDAQ but my Intel CPU works with Little-Endian.
             msg_length = struct.unpack('>H', length_bytes)[0]
             
             # Read the Message Type (1 byte)
