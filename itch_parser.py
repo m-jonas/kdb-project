@@ -3,16 +3,11 @@ import sys
 import datetime
 
 # --- CONFIG ---
-# file is excluded from repo due to size.
-# can be downloaded from https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz
 FILE_PATH = 'data/01302019.NASDAQ_ITCH50'
-# Pre-market open starts 4am, we want to reach market open,
-# so:
-MAX_MESSAGES = 15000000 # Catching a good chunck of market action
+MAX_MESSAGES = 15000000
 TARGET_TICKER = 'AAPL'
 
 def parse_timestamp(timestamp_bytes):
-    # Converts 6-byte nanosecond timestamp to human-readable string
     ns = int.from_bytes(timestamp_bytes, byteorder='big')
     td = datetime.timedelta(microseconds=ns / 1000)
     return str(td)
@@ -27,138 +22,160 @@ def parse_itch_file(filepath):
         return
 
     msg_count = 0
-    stock_directory = {}
     
-    # --- STATE MANAGEMENT ---
-    # This set will remember the Order IDs of AAPL so we can track their lifecycle
-    tracked_orders = set()
+    # --- LOB STATE MANAGEMENT ---
+    # 1. Track individual orders: {order_id: {'side': 'B', 'price': 150.0, 'shares': 100}}
+    orders = {} 
+    
+    # 2. Track aggregated price levels: {price: total_shares}
+    bids = {}
+    asks = {}
+    
+    # 3. Track the previous BBO to only print when it changes
+    prev_bbo = (0.0, 0.0)
+
+    def update_lob(side, price, shares_delta):
+        """ Helper function to add/remove shares from a price level """
+        book = bids if side == 'B' else asks
+        book[price] = book.get(price, 0) + shares_delta
+        
+        # If all shares at this price level are gone, remove the price level entirely
+        if book[price] <= 0:
+            del book[price]
 
     try:
         while msg_count < MAX_MESSAGES:
-            # Read the 2-byte length prefix
-            # Nasdaq hist data is pre-pended with 2 bytes to tell us
-            # how long the upcoming entry is
-            # and then read that length.
             length_bytes = f.read(2)
-            if not length_bytes:
-                print("End of file reached.")
-                break
+            if not length_bytes: break
             
-            # Unpack the 2-byte integer
-            # Big-Endian Unsigned Short for NASDAQ but my Intel CPU works with Little-Endian.
             msg_length = struct.unpack('>H', length_bytes)[0]
-            
-            # Read the Message Type (1 byte)
             msg_type = f.read(1)
-            
-            # Read the payload (Length minus the 1 byte we just read for msg_type)
             payload = f.read(msg_length - 1)
             
             # --- PARSING LOGIC ---
+            timestamp = "" # We will populate this if it's an AAPL event
             
-            if msg_type == b'S':
-                # Unpack System Event: Locate(2), Tracking(2), Time(6), EventCode(1)
-                unpacked = struct.unpack('>HH6sc', payload)
-                timestamp = parse_timestamp(unpacked[2])
-                event_code = unpacked[3].decode('ascii')
-                print(f"[{timestamp}] SYSTEM EVENT: {event_code}")
-
-            elif msg_type == b'R':
-                # Unpack Stock Directory
-                header = struct.unpack('>HH6s8s', payload[:18])
-                stock_locate = header[0]
-                timestamp = parse_timestamp(header[2])
-                symbol = header[3].decode('ascii').strip()
-                
-                stock_directory[stock_locate] = symbol
-                print(f"[{timestamp}] STOCK DIRECTORY: ID {stock_locate} -> {symbol}")
-
-            elif msg_type == b'A':
-                # Unpack Add Order (35 bytes payload)
-                # >HH6sQcI8sI from https://docs.python.org/3/library/struct.html#format-characters
+            if msg_type == b'A':
                 unpacked = struct.unpack('>HH6sQcI8sI', payload)
-                
-                stock_locate = unpacked[0]
-                timestamp = parse_timestamp(unpacked[2])
-                order_ref = unpacked[3]
-                side = unpacked[4].decode('ascii')
-                shares = unpacked[5]
                 stock = unpacked[6].decode('ascii').strip()
-                price = unpacked[7] / 10000.0  # Convert integer to 4-decimal float
                 
-                # Filter for a specific stock to avoid console spam
                 if stock == TARGET_TICKER:
-                    # Remember this order ID!
-                    tracked_orders.add(order_ref)
-                    print(f"[{timestamp}] ADD     ({side}): {shares} shrs @ ${price:.4f} [ID: {order_ref}]")
+                    timestamp = parse_timestamp(unpacked[2])
+                    order_ref = unpacked[3]
+                    side = unpacked[4].decode('ascii')
+                    shares = unpacked[5]
+                    price = unpacked[7] / 10000.0
+                    
+                    # 1. Save order details
+                    orders[order_ref] = {'side': side, 'price': price, 'shares': shares}
+                    # 2. Add shares to the book
+                    update_lob(side, price, shares)
 
             elif msg_type == b'E':
-                # Order Executed: >HH6sQIQ (30 bytes)
                 unpacked = struct.unpack('>HH6sQIQ', payload)
                 order_ref = unpacked[3]
                 
-                if order_ref in tracked_orders:
+                if order_ref in orders:
                     timestamp = parse_timestamp(unpacked[2])
                     exec_shares = unpacked[4]
-                    print(f"[{timestamp}] EXECUTE    : {exec_shares} shrs traded!       [ID: {order_ref}]")
-
-            elif msg_type == b'X':
-                # Order Cancel (Partial): >HH6sQI (22 bytes)
-                unpacked = struct.unpack('>HH6sQI', payload)
-                order_ref = unpacked[3]
-                
-                if order_ref in tracked_orders:
-                    timestamp = parse_timestamp(unpacked[2])
-                    cancel_shares = unpacked[4]
-                    print(f"[{timestamp}] CANCEL     : {cancel_shares} shrs canceled      [ID: {order_ref}]")
-
-            elif msg_type == b'D':
-                # Order Delete (Full): >HH6sQ (18 bytes)
-                unpacked = struct.unpack('>HH6sQ', payload)
-                order_ref = unpacked[3]
-                
-                if order_ref in tracked_orders:
-                    timestamp = parse_timestamp(unpacked[2])
-                    print(f"[{timestamp}] DELETE     : Order completely removed [ID: {order_ref}]")
-                    # Clean up memory so our set doesn't grow infinitely
-                    tracked_orders.remove(order_ref)
-
-            elif msg_type == b'U':
-                # Order Replace: >HH6sQQII (34 bytes)
-                unpacked = struct.unpack('>HH6sQQII', payload)
-                orig_order_ref = unpacked[3]
-                
-                if orig_order_ref in tracked_orders:
-                    timestamp = parse_timestamp(unpacked[2])
-                    new_order_ref = unpacked[4]
-                    new_shares = unpacked[5]
-                    new_price = unpacked[6] / 10000.0
                     
-                    print(f"[{timestamp}] REPLACE    : {new_shares} shrs @ ${new_price:.4f} [Old: {orig_order_ref} -> New: {new_order_ref}]")
-                    # Update our tracker memory
-                    tracked_orders.remove(orig_order_ref)
-                    tracked_orders.add(new_order_ref)
+                    # 1. Remove shares from book
+                    order = orders[order_ref]
+                    update_lob(order['side'], order['price'], -exec_shares)
+                    
+                    # 2. Update/Delete order
+                    order['shares'] -= exec_shares
+                    if order['shares'] <= 0:
+                        del orders[order_ref]
 
             elif msg_type == b'C':
-                # Order Executed with Price: >HH6sQIQcI (35 bytes)
+                # Order Executed with Price (Price on book doesn't change, just shares)
                 unpacked = struct.unpack('>HH6sQIQcI', payload)
                 order_ref = unpacked[3]
                 
-                if order_ref in tracked_orders:
+                if order_ref in orders:
                     timestamp = parse_timestamp(unpacked[2])
                     exec_shares = unpacked[4]
-                    exec_price = unpacked[7] / 10000.0
-                    print(f"[{timestamp}] EXEC(PRC)  : {exec_shares} shrs @ ${exec_price:.4f} [ID: {order_ref}]")
+                    
+                    order = orders[order_ref]
+                    update_lob(order['side'], order['price'], -exec_shares)
+                    
+                    order['shares'] -= exec_shares
+                    if order['shares'] <= 0:
+                        del orders[order_ref]
+
+            elif msg_type == b'X':
+                unpacked = struct.unpack('>HH6sQI', payload)
+                order_ref = unpacked[3]
+                
+                if order_ref in orders:
+                    timestamp = parse_timestamp(unpacked[2])
+                    cancel_shares = unpacked[4]
+                    
+                    order = orders[order_ref]
+                    update_lob(order['side'], order['price'], -cancel_shares)
+                    
+                    order['shares'] -= cancel_shares
+                    if order['shares'] <= 0:
+                        del orders[order_ref]
+
+            elif msg_type == b'D':
+                unpacked = struct.unpack('>HH6sQ', payload)
+                order_ref = unpacked[3]
+                
+                if order_ref in orders:
+                    timestamp = parse_timestamp(unpacked[2])
+                    order = orders[order_ref]
+                    
+                    # Remove entire remaining size from the book
+                    update_lob(order['side'], order['price'], -order['shares'])
+                    del orders[order_ref]
+
+            elif msg_type == b'U':
+                unpacked = struct.unpack('>HH6sQQII', payload)
+                orig_ref = unpacked[3]
+                
+                if orig_ref in orders:
+                    timestamp = parse_timestamp(unpacked[2])
+                    new_ref = unpacked[4]
+                    new_shares = unpacked[5]
+                    new_price = unpacked[6] / 10000.0
+                    
+                    order = orders[orig_ref]
+                    side = order['side']
+                    
+                    # 1. Remove old order from book
+                    update_lob(side, order['price'], -order['shares'])
+                    del orders[orig_ref]
+                    
+                    # 2. Add new order to book
+                    orders[new_ref] = {'side': side, 'price': new_price, 'shares': new_shares}
+                    update_lob(side, new_price, new_shares)
 
             msg_count += 1
+            
+            # --- BBO CALCULATION ---
+            # If we processed an AAPL event (timestamp is not empty)
+            if timestamp:
+                # Find the highest bid and lowest ask
+                best_bid = max(bids.keys()) if bids else 0.0
+                best_ask = min(asks.keys()) if asks else 0.0
+                
+                current_bbo = (best_bid, best_ask)
+                
+                # Only print if the top of the book has changed!
+                if current_bbo != prev_bbo:
+                    bid_size = bids.get(best_bid, 0)
+                    ask_size = asks.get(best_ask, 0)
+                    print(f"[{timestamp}] BBO | Bid: {bid_size:4} @ ${best_bid:<8.4f} | Ask: {ask_size:4} @ ${best_ask:<8.4f}")
+                    prev_bbo = current_bbo
 
     except KeyboardInterrupt:
         print("\nStopping...")
     finally:
         f.close()
         print(f"\nProcessed {msg_count} messages.")
-        print(f"Loaded {len(stock_directory)} symbols into memory.")
-        print(f"Currently tracking {len(tracked_orders)} live {TARGET_TICKER} orders in memory.")
+        print(f"Active limit orders in memory: {len(orders)}")
 
 if __name__ == "__main__":
     parse_itch_file(FILE_PATH)
