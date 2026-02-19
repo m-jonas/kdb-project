@@ -8,10 +8,11 @@ import datetime
 FILE_PATH = 'data/01302019.NASDAQ_ITCH50'
 # Pre-market open starts 4am, we want to reach market open,
 # so:
-MAX_MESSAGES = 5000000
+MAX_MESSAGES = 15000000 # Catching a good chunck of market action
+TARGET_TICKER = 'AAPL'
 
 def parse_timestamp(timestamp_bytes):
-    """ Converts 6-byte nanosecond timestamp to human-readable string """
+    # Converts 6-byte nanosecond timestamp to human-readable string
     ns = int.from_bytes(timestamp_bytes, byteorder='big')
     td = datetime.timedelta(microseconds=ns / 1000)
     return str(td)
@@ -27,6 +28,10 @@ def parse_itch_file(filepath):
 
     msg_count = 0
     stock_directory = {}
+    
+    # --- STATE MANAGEMENT ---
+    # This set will remember the Order IDs of AAPL so we can track their lifecycle
+    tracked_orders = set()
 
     try:
         while msg_count < MAX_MESSAGES:
@@ -35,7 +40,6 @@ def parse_itch_file(filepath):
             # how long the upcoming entry is
             # and then read that length.
             length_bytes = f.read(2)
-            
             if not length_bytes:
                 print("End of file reached.")
                 break
@@ -83,8 +87,68 @@ def parse_itch_file(filepath):
                 price = unpacked[7] / 10000.0  # Convert integer to 4-decimal float
                 
                 # Filter for a specific stock to avoid console spam
-                if stock == 'AAPL':
-                    print(f"[{timestamp}] ADD ORDER ({side}): {shares} shares of {stock} @ ${price:.4f} [ID: {order_ref}]")
+                if stock == TARGET_TICKER:
+                    # Remember this order ID!
+                    tracked_orders.add(order_ref)
+                    print(f"[{timestamp}] ADD     ({side}): {shares} shrs @ ${price:.4f} [ID: {order_ref}]")
+
+            elif msg_type == b'E':
+                # Order Executed: >HH6sQIQ (30 bytes)
+                unpacked = struct.unpack('>HH6sQIQ', payload)
+                order_ref = unpacked[3]
+                
+                if order_ref in tracked_orders:
+                    timestamp = parse_timestamp(unpacked[2])
+                    exec_shares = unpacked[4]
+                    print(f"[{timestamp}] EXECUTE    : {exec_shares} shrs traded!       [ID: {order_ref}]")
+
+            elif msg_type == b'X':
+                # Order Cancel (Partial): >HH6sQI (22 bytes)
+                unpacked = struct.unpack('>HH6sQI', payload)
+                order_ref = unpacked[3]
+                
+                if order_ref in tracked_orders:
+                    timestamp = parse_timestamp(unpacked[2])
+                    cancel_shares = unpacked[4]
+                    print(f"[{timestamp}] CANCEL     : {cancel_shares} shrs canceled      [ID: {order_ref}]")
+
+            elif msg_type == b'D':
+                # Order Delete (Full): >HH6sQ (18 bytes)
+                unpacked = struct.unpack('>HH6sQ', payload)
+                order_ref = unpacked[3]
+                
+                if order_ref in tracked_orders:
+                    timestamp = parse_timestamp(unpacked[2])
+                    print(f"[{timestamp}] DELETE     : Order completely removed [ID: {order_ref}]")
+                    # Clean up memory so our set doesn't grow infinitely
+                    tracked_orders.remove(order_ref)
+
+            elif msg_type == b'U':
+                # Order Replace: >HH6sQQII (34 bytes)
+                unpacked = struct.unpack('>HH6sQQII', payload)
+                orig_order_ref = unpacked[3]
+                
+                if orig_order_ref in tracked_orders:
+                    timestamp = parse_timestamp(unpacked[2])
+                    new_order_ref = unpacked[4]
+                    new_shares = unpacked[5]
+                    new_price = unpacked[6] / 10000.0
+                    
+                    print(f"[{timestamp}] REPLACE    : {new_shares} shrs @ ${new_price:.4f} [Old: {orig_order_ref} -> New: {new_order_ref}]")
+                    # Update our tracker memory
+                    tracked_orders.remove(orig_order_ref)
+                    tracked_orders.add(new_order_ref)
+
+            elif msg_type == b'C':
+                # Order Executed with Price: >HH6sQIQcI (35 bytes)
+                unpacked = struct.unpack('>HH6sQIQcI', payload)
+                order_ref = unpacked[3]
+                
+                if order_ref in tracked_orders:
+                    timestamp = parse_timestamp(unpacked[2])
+                    exec_shares = unpacked[4]
+                    exec_price = unpacked[7] / 10000.0
+                    print(f"[{timestamp}] EXEC(PRC)  : {exec_shares} shrs @ ${exec_price:.4f} [ID: {order_ref}]")
 
             msg_count += 1
 
@@ -94,6 +158,7 @@ def parse_itch_file(filepath):
         f.close()
         print(f"\nProcessed {msg_count} messages.")
         print(f"Loaded {len(stock_directory)} symbols into memory.")
+        print(f"Currently tracking {len(tracked_orders)} live {TARGET_TICKER} orders in memory.")
 
 if __name__ == "__main__":
     parse_itch_file(FILE_PATH)
