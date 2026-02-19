@@ -1,4 +1,5 @@
-/ cep.q - Real-Time Analytics & OHLC Engine
+/ cep.q - Complex Event Processor
+/ Real-Time Analytics & OHLC Engine Logic
 
 / 1. Configuration
 ONE_MIN:0D00:01;
