@@ -6,7 +6,9 @@ import datetime
 # file is excluded from repo due to size.
 # can be downloaded from https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz
 FILE_PATH = 'data/01302019.NASDAQ_ITCH50'
-MAX_MESSAGES = 100000
+# Pre-market open starts 4am, we want to reach market open,
+# so:
+MAX_MESSAGES = 5000000
 
 def parse_timestamp(timestamp_bytes):
     """ Converts 6-byte nanosecond timestamp to human-readable string """
@@ -29,6 +31,9 @@ def parse_itch_file(filepath):
     try:
         while msg_count < MAX_MESSAGES:
             # Read the 2-byte length prefix
+            # Nasdaq hist data is pre-pended with 2 bytes to tell us
+            # how long the upcoming entry is
+            # and then read that length.
             length_bytes = f.read(2)
             
             if not length_bytes:
@@ -63,6 +68,23 @@ def parse_itch_file(filepath):
                 
                 stock_directory[stock_locate] = symbol
                 print(f"[{timestamp}] STOCK DIRECTORY: ID {stock_locate} -> {symbol}")
+
+            elif msg_type == b'A':
+                # Unpack Add Order (35 bytes payload)
+                # >HH6sQcI8sI from https://docs.python.org/3/library/struct.html#format-characters
+                unpacked = struct.unpack('>HH6sQcI8sI', payload)
+                
+                stock_locate = unpacked[0]
+                timestamp = parse_timestamp(unpacked[2])
+                order_ref = unpacked[3]
+                side = unpacked[4].decode('ascii')
+                shares = unpacked[5]
+                stock = unpacked[6].decode('ascii').strip()
+                price = unpacked[7] / 10000.0  # Convert integer to 4-decimal float
+                
+                # Filter for a specific stock to avoid console spam
+                if stock == 'AAPL':
+                    print(f"[{timestamp}] ADD ORDER ({side}): {shares} shares of {stock} @ ${price:.4f} [ID: {order_ref}]")
 
             msg_count += 1
 
