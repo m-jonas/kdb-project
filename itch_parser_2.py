@@ -3,6 +3,8 @@ import sys
 import datetime
 
 # --- CONFIG ---
+# file is excluded from repo due to size.
+# can be downloaded from https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz
 FILE_PATH = 'data/01302019.NASDAQ_ITCH50'
 MAX_MESSAGES = 100000
 
