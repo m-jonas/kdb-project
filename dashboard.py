@@ -34,13 +34,21 @@ else:
 auto_refresh = st.sidebar.checkbox("Auto-Refresh (5s)", value=True)
 
 # 3. Fetch Data Function
-def fetch_data():
+if 'ohlc_data' not in st.session_state:
+    st.session_state.ohlc_data = pd.DataFrame()
+
+def fetch_data(last_time=None):
     if not q:
         return pd.DataFrame()
     
     try:
-        # Query the 'ohlc' table from the CEP engine
-        res = q("0!ohlc")
+        if last_time is None:
+            # Full load (initial)
+            res = q("0!ohlc")
+        else:
+            # Incremental load
+            res = q("{select from ohlc where time >= x}", last_time)
+
         df = res.pd()
         
         if df.empty:
@@ -60,8 +68,34 @@ def fetch_data():
 placeholder = st.empty()
 
 while True:
-    # Fetch data first
-    df = fetch_data()
+    # Check for new day to handle potential KDB+ midnight reset
+    current_midnight = pd.Timestamp.now().normalize()
+    if 'last_midnight' not in st.session_state:
+        st.session_state.last_midnight = current_midnight
+
+    if current_midnight > st.session_state.last_midnight:
+        st.session_state.ohlc_data = pd.DataFrame()
+        st.session_state.last_midnight = current_midnight
+
+    # Determine last fetched time
+    last_time = None
+    if not st.session_state.ohlc_data.empty:
+        last_time = st.session_state.ohlc_data['time'].max()
+
+    # Fetch data (incremental or full)
+    new_df = fetch_data(last_time)
+
+    # Update session state
+    if not new_df.empty:
+        if st.session_state.ohlc_data.empty:
+            st.session_state.ohlc_data = new_df
+        else:
+            # Concatenate and sort
+            st.session_state.ohlc_data = pd.concat([st.session_state.ohlc_data, new_df], ignore_index=True)
+            st.session_state.ohlc_data = st.session_state.ohlc_data.sort_values(by='time').drop_duplicates(subset=['time', 'sym'], keep='last')
+
+    # Use the full dataset for display
+    df = st.session_state.ohlc_data
 
     # Clear the placeholder to avoid 'DuplicateElementId' and force refresh
     placeholder.empty()
