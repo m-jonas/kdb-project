@@ -13,7 +13,7 @@ TARGET_TICKER = 'AAPL'
 # --- KDB+ CONNECTION ---
 try:
     # Connect to the Tickerplant asynchronously
-    q = kx.AsyncQConnection(host='localhost', port=5010)
+    q = kx.QConnection(host='localhost', port=5010)
     print(">>> Successfully connected to KDB+ Tickerplant via PyKX (Port 5010)")
 except Exception as e:
     print(f"FATAL: Could not connect to KDB+. Is Docker running? Error: {e}")
@@ -148,10 +148,10 @@ def parse_itch_file(filepath):
                     print("  >>> PUBLISHING TO KDB+ TICKERPLANT...")
                     
                     # 2. Construct the KDB+ update query
-                    q_msg = f".u.upd[`bbo; enlist ({ns_time}n; `{TARGET_TICKER}; {bid_size}j; {best_bid}f; {ask_size}j; {best_ask}f)]"
+                    q_msg = f".u.upd[`bbo; (enlist {ns_time}n; enlist `{TARGET_TICKER}; enlist {bid_size}j; enlist {best_bid}f; enlist {ask_size}j; enlist {best_ask}f)]"
                     
                     # 3. Send asynchronously via PyKX
-                    q(q_msg)
+                    q(q_msg, wait=False)
                     
                     prev_bbo = current_bbo
                     time.sleep(0.01) # Slightly faster visualization
