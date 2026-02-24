@@ -28,7 +28,7 @@ delete from `vwapState;
 delete from `tradeBuffer;
 
 / Define Helper to create a 1-row table (Mocking the TP output)
-/ FIX: Use .z.N (Timespan) to match 'tradeBuffer' schema in cep.q
+/ Use .z.N (Timespan) to match 'tradeBuffer' schema in cep.q
 mockTrade:{[p; s]
   ([] time:enlist .z.N; sym:enlist `TEST; price:enlist p; size:enlist s; 
       bid:enlist 0f; ask:enlist 0f; bidSize:enlist 0f; askSize:enlist 0f)
