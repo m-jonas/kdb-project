@@ -137,6 +137,10 @@ def parse_itch_file(filepath):
                 best_ask = min(asks.keys()) if asks else 0.0
                 current_bbo = (best_bid, best_ask)
                 
+                # We are only interested in actionable L2 signals to maintain lean state of order book.
+                # e.g. this logic ignores traders that are placing buy orders way into the future.
+                # e.g., trying to buy AAPL at $150.00 when the current price is $162.00 
+                # We only update KDB+ when the actual spread or top-level size changes.
                 if current_bbo != prev_bbo:
                     bid_size = bids.get(best_bid, 0)
                     ask_size = asks.get(best_ask, 0)
@@ -150,11 +154,11 @@ def parse_itch_file(filepath):
                     # 2. Construct the KDB+ update query
                     q_msg = f".u.upd[`bbo; (enlist {ns_time}n; enlist `{TARGET_TICKER}; enlist {bid_size}j; enlist {best_bid}f; enlist {ask_size}j; enlist {best_ask}f)]"
                     
-                    # 3. Send asynchronously via PyKX
+                    # 3. Send msg asynchronously
                     q(q_msg, wait=False)
                     
                     prev_bbo = current_bbo
-                    time.sleep(0.01) # Slightly faster visualization
+                    time.sleep(0.01) # visualization speed
 
     except KeyboardInterrupt:
         print("\nStopping...")
