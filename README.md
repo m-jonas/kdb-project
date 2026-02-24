@@ -89,44 +89,13 @@ q) h"count bbo"       / Check Nasdaq Level 2 updates
 q) h"select top 10 from bbo"
 ```
 
-## 🛠️ Manual Start (WSL/Linux)
-If you prefer running components individually:
-
-**1. Start Tickerplant**: `q tick.q sym . -p 5010`
-
-**2. Start RDB**: `q r.q -p 5011`
-
-**3. Start CEP Engine**: `q cep.q -p 5012`
-
-**4. Start Feed**: `python coinbase_feedhandler.py`
-
-## 💾 Data Persistence (HDB)
+**Data Persistence (HDB)**
 The system is designed to save data to disk automatically at midnight. To test this manually (Force EOD):
-
-1.  Attach to the **Tickerplant** container:
-    ```bash
-    docker attach kdb_tp
-    ```
-2.  Run the End-of-Day function:
-    ```q
-    .u.end[.z.D]
-    ```
-    *This triggers the RDB to save in-memory tables to the `hdb/` directory and clear memory.*
-3.  Detach from the container using `Ctrl+P`, then `Ctrl+Q`.
-
-To perform EOD on Docker:
-
-1.  Connect to the "kdb_rdb" process (running on port 5011 inside the container)
-    
-        `h:hopen 5011`
-
-2.  Send the End-of-Day command remotely
-    
-        `h".u.end[.z.D]"`
-
-3.  (Optional) Check if it worked by asking for the row count of a table
-    
-        `h"count ticker"`
+```
+q) h:hopen 5011
+q) h".u.end[.z.D]"
+```
+*This triggers the RDB to save in-memory tables to the hdb/ directory, partition them by date, and clear RAM.*
 
 ## ✅ Automated Testing
 This project includes a regression test suite to verify the mathematical accuracy of the analytics engine (VWAP/Imbalance) before deployment.
@@ -146,14 +115,32 @@ Expected Output:
 
 ## 📂 Project Structure
 
-```
-├── cep.q               # Complex Event Processing (Analytics)
-├── tick.q              # Tickerplant (Vanilla kdb+tick)
-├── r.q                 # Real-Time Database (RDB)
-├── coinbase_feedhandler.py   # Python WebSocket Ingestion
-├── dashboard.py        # Streamlit Visualization
-├── tests.q             # Unit Test Suite
-├── Dockerfile          # Master Image Definition
-├── docker-compose.yml  # Microservices Orchestration
-└── hdb/                # Historical Database (Partitioned)
-```
+Infrastructure & Analytics (KDB+)
+
+- `tick.q` - Master Tickerplant routing engine.
+
+- `r.q` - Fault-tolerant Real-Time Database (RDB) with robust connection retry logic.
+
+- `cep.q` - Complex Event Processing engine for VWAP and OHLC generation.
+
+- `tick/sym.q` - Schema definitions for ticker (Crypto) and bbo (Equities) tables.
+
+- `hdb/` - On-disk partitioned historical database.
+
+Market Data Handlers (Python)
+
+- `itch_parser_kdb.py` - Core L3 ITCH parser, L2 aggregator, and PyKX publisher.
+
+- `itch_parser_dash.py` - Terminal-based visual Depth of Market (DOM) ladder.
+
+- `coinbase_feedhandler.py` - Async WebSocket ingestion for Coinbase.
+
+- `kraken_feedhandler.py` - Async WebSocket ingestion for Kraken.
+
+Ops & Visuals
+
+- `dashboard.py` - Streamlit application querying the CEP engine.
+
+- `docker-compose.yml` - Microservices orchestration.
+
+- `prometheus.yml` / `monitor.q` - Infrastructure observability stack.
