@@ -9,3 +9,6 @@ ticker:([]
     bidSize:`float$(); 
     askSize:`float$()
     )
+
+/ ITCH Level 2 Best Bid/Offer
+bbo:([] time:`timespan$(); sym:`symbol$(); bidSize:`long$(); bidPrice:`float$(); askSize:`long$(); askPrice:`float$());
