@@ -46,20 +46,48 @@ A valid `kc.lic` (KDB+ License) placed in the root directory.
 
 A `cdp_api_key.json` (Coinbase Credentials) in the root directory.
 
+(Optional) Download the Nasdaq ITCH sample file and place it in a data/ directory.
+
 1. Configure Environment
 Create a .env file in the root directory to set your local hostname (required for KDB+ license validation).
 
-`cp .env.example .env`
-Edit .env and set KDB_HOSTNAME to your machine's hostname (e.g., 'my-laptop')
+```
+cp .env.example .env
+# Edit .env and set KDB_HOSTNAME to your machine's hostname (e.g., 'my-laptop')
+```
 
-2. Build & Run
+2. Build & Run the KDB+ Stack
 
 ```
 docker-compose build
-docker-compose up
+docker-compose up -d
 ```
 
-*Access the Dashboard at http://localhost:8501* *
+*Access the Crypto Dashboard at http://localhost:8501*
+
+3. Start the Nasdaq ITCH Feed Handler
+
+Once the Tickerplant is running, start the Python parser to stream Level 2 BBO updates into the KDB+ database:
+
+```
+python itch_parser_kdb.py
+```
+
+## 🛠️ Interacting with the Data
+
+**Checking the RDB (Real-Time Database)**
+You can connect directly to the in-memory database to query the live streams:
+
+```
+# Attach to the RDB container
+docker exec -it kdb_rdb q -p 5011
+
+# Inside the q terminal:
+q) h:hopen 5011
+q) h"count ticker"    / Check Crypto trades
+q) h"count bbo"       / Check Nasdaq Level 2 updates
+q) h"select top 10 from bbo"
+```
 
 ## 🛠️ Manual Start (WSL/Linux)
 If you prefer running components individually:
