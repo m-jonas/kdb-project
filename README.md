@@ -1,28 +1,34 @@
-# Real-Time Crypto Analytics Engine (KDB+/q)
+# Real-Time Market Data & Trading Engine (KDB+ / ITCH / Crypto)
 
-![KDB+](https://img.shields.io/badge/KDB%2B-5.0-blue) ![Python](https://img.shields.io/badge/Python-3.10-yellow) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
+![KDB+](https://img.shields.io/badge/KDB%2B-5.0-blue) ![Python](https://img.shields.io/badge/Python-3.10-yellow) ![PyKX](https://img.shields.io/badge/PyKX-IPC-orange) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
 
-## 📊 Dashboard Preview
-![Real-Time Dashboard](images/dashboard.png)
-*Live Streamlit dashboard visualizing 1-minute OHLC bars and VWAP from KDB+ CEP engine.*
+## 📊 System Visualizations
+| Crypto Real-Time Dashboard | Nasdaq L2 Depth of Market (Terminal) |
+| :---: | :---: |
+| ![Dashboard](images/dashboard.png) | ![ITCH DOM](images/Screenshot%202026-02-19%20204559.png) |
+| *Live Streamlit dashboard visualizing 1-minute OHLC bars and VWAP from KDB+ CEP engine.* | *Terminal-based Level 2 Order Book built from raw binary ITCH 5.0 payloads.* |
 
 ## 📖 Project Overview
-This project is a high-frequency trading (HFT) data pipeline built with **KDB+/q** and **Python**. It mimics an institutional "Tick Architecture" to capture live cryptocurrency market data, persist it to a historical database (HDB), and calculate real-time analytics with microsecond latency.
+This project is a high-frequency trading (HFT) data pipeline built with **KDB+/q** and **Python**. It mimics an institutional "Tick Architecture" to process both unstructured WebSockets (Crypto) and raw binary network streams (Traditional Equities) into a centralized, high-performance database with microsecond latency.
 
-**Key Capabilities:**
-* **Ingestion:** Normalizes WebSocket feeds (Coinbase) into KDB+ IPC updates.
-* **Analytics:** Real-time Vectorized VWAP and Order Book Imbalance calculation.
-* **Aggregation:** Automatic generation of 1-minute OHLCV bars.
-* **Persistence:** End-of-Day (EOD) logic to flush in-memory data to on-disk HDB partitions.
-* **Ops:** Fully containerized microservices architecture using Docker Compose.
+**Key Technical Capabilities:**
+* **Level 3 Binary Data Parsing:** Engineered a highly optimized Python feed handler to ingest, decode, and process raw Nasdaq TotalView-ITCH 5.0 payloads.
+* **Limit Order Book (LOB) State Machine:** In-memory tracking of the complete lifecycle of millions of equity orders (Add, Execute, Cancel, Replace, Delete) in real-time.
+* **Level 3 to Level 2 Aggregation:** Extracts actionable Best Bid and Offer (BBO) signals from the L3 firehose, highly compressing data before async publication to KDB+.
+* **Crypto Ingestion:** Normalizes WebSocket JSON feeds (Coinbase, Kraken) into kdb+ IPC updates.
+* **Complex Event Processing (CEP):** Real-time Vectorized VWAP, Order Book Imbalance, and continuous OHLCV bar generation.
+* **Persistence:** End-of-Day (EOD) logic to flush in-memory data to on-disk partitioned Historical Databases (HDB).
+* **Ops & Observability:** Fully containerized microservices architecture with Prometheus and Grafana monitoring.
 
-## 🏗️ Architecture
+## 🏗️ Architecture Flow
 The system follows a standard **kdb+tick** architecture, decoupled into microservices:
 
 ```mermaid
 graph TD
-    A[Coinbase WebSocket] -->|JSON| B(Python Feed Handler)
-    B -->|IPC Async| C{Tickerplant :5010}
+    A[Coinbase/Kraken WebSockets] -->|JSON| B(Crypto Feed Handlers)
+    I[Nasdaq ITCH 5.0 Binary] -->|Struct Unpack| J(L3 to L2 Python Engine)
+    B -->|PyKX IPC| C{Tickerplant :5010}
+    J -->|PyKX IPC Async| C
     C -->|Upd| D[RDB :5011]
     C -->|Upd| E[CEP Engine :5012]
     D -->|End of Day| F[(HDB Disk)]
@@ -40,59 +46,56 @@ A valid `kc.lic` (KDB+ License) placed in the root directory.
 
 A `cdp_api_key.json` (Coinbase Credentials) in the root directory.
 
+(Optional) Download the Nasdaq ITCH sample file and place it in a data/ directory.
+
 1. Configure Environment
 Create a .env file in the root directory to set your local hostname (required for KDB+ license validation).
 
-`cp .env.example .env`
-Edit .env and set KDB_HOSTNAME to your machine's hostname (e.g., 'my-laptop')
+```
+cp .env.example .env
+# Edit .env and set KDB_HOSTNAME to your machine's hostname (e.g., 'my-laptop')
+```
 
-2. Build & Run
+2. Build & Run the KDB+ Stack
 
 ```
 docker-compose build
-docker-compose up
+docker-compose up -d
 ```
 
-*Access the Dashboard at http://localhost:8501* *
+*Access the Crypto Dashboard at http://localhost:8501*
 
-## 🛠️ Manual Start (WSL/Linux)
-If you prefer running components individually:
+3. Start the Nasdaq ITCH Feed Handler
 
-**1. Start Tickerplant**: `q tick.q sym . -p 5010`
+Once the Tickerplant is running, start the Python parser to stream Level 2 BBO updates into the KDB+ database:
 
-**2. Start RDB**: `q r.q -p 5011`
+```
+python itch_parser_kdb.py
+```
 
-**3. Start CEP Engine**: `q cep.q -p 5012`
+## 🛠️ Interacting with the Data
 
-**4. Start Feed**: `python coinbase_feedhandler.py`
+**Checking the RDB (Real-Time Database)**
+You can connect directly to the in-memory database to query the live streams:
 
-## 💾 Data Persistence (HDB)
+```
+# Attach to the RDB container
+docker exec -it kdb_rdb q -p 5011
+
+# Inside the q terminal:
+q) h:hopen 5011
+q) h"count ticker"    / Check Crypto trades
+q) h"count bbo"       / Check Nasdaq Level 2 updates
+q) h"select top 10 from bbo"
+```
+
+**Data Persistence (HDB)**
 The system is designed to save data to disk automatically at midnight. To test this manually (Force EOD):
-
-1.  Attach to the **Tickerplant** container:
-    ```bash
-    docker attach kdb_tp
-    ```
-2.  Run the End-of-Day function:
-    ```q
-    .u.end[.z.D]
-    ```
-    *This triggers the RDB to save in-memory tables to the `hdb/` directory and clear memory.*
-3.  Detach from the container using `Ctrl+P`, then `Ctrl+Q`.
-
-To perform EOD on Docker:
-
-1.  Connect to the "kdb_rdb" process (running on port 5011 inside the container)
-    
-        `h:hopen 5011`
-
-2.  Send the End-of-Day command remotely
-    
-        `h".u.end[.z.D]"`
-
-3.  (Optional) Check if it worked by asking for the row count of a table
-    
-        `h"count ticker"`
+```
+q) h:hopen 5011
+q) h".u.end[.z.D]"
+```
+*This triggers the RDB to save in-memory tables to the hdb/ directory, partition them by date, and clear RAM.*
 
 ## ✅ Automated Testing
 This project includes a regression test suite to verify the mathematical accuracy of the analytics engine (VWAP/Imbalance) before deployment.
@@ -112,14 +115,32 @@ Expected Output:
 
 ## 📂 Project Structure
 
-```
-├── cep.q               # Complex Event Processing (Analytics)
-├── tick.q              # Tickerplant (Vanilla kdb+tick)
-├── r.q                 # Real-Time Database (RDB)
-├── coinbase_feedhandler.py   # Python WebSocket Ingestion
-├── dashboard.py        # Streamlit Visualization
-├── tests.q             # Unit Test Suite
-├── Dockerfile          # Master Image Definition
-├── docker-compose.yml  # Microservices Orchestration
-└── hdb/                # Historical Database (Partitioned)
-```
+Infrastructure & Analytics (KDB+)
+
+- `tick.q` - Master Tickerplant routing engine.
+
+- `r.q` - Fault-tolerant Real-Time Database (RDB) with robust connection retry logic.
+
+- `cep.q` - Complex Event Processing engine for VWAP and OHLC generation.
+
+- `tick/sym.q` - Schema definitions for ticker (Crypto) and bbo (Equities) tables.
+
+- `hdb/` - On-disk partitioned historical database.
+
+Market Data Handlers (Python)
+
+- `itch_parser_kdb.py` - Core L3 ITCH parser, L2 aggregator, and PyKX publisher.
+
+- `itch_parser_dash.py` - Terminal-based visual Depth of Market (DOM) ladder.
+
+- `coinbase_feedhandler.py` - Async WebSocket ingestion for Coinbase.
+
+- `kraken_feedhandler.py` - Async WebSocket ingestion for Kraken.
+
+Ops & Visuals
+
+- `dashboard.py` - Streamlit application querying the CEP engine.
+
+- `docker-compose.yml` - Microservices orchestration.
+
+- `prometheus.yml` / `monitor.q` - Infrastructure observability stack.

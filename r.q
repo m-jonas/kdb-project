@@ -47,13 +47,28 @@ upd:insert;
 if[not system"p"; system"p 5011"]; / RDB listens on 5011
 
 tpHost:getenv[`TP_HOST];
-/ Default to `:localhost:5010 if env var is missing
+/ Default to localhost:5010 if env var is missing
 tpConnect:$[count tpHost; hsym `$(tpHost,":5010"); `:localhost:5010];
--1 "Connecting to TP at ",string tpConnect;
-h:@[hopen; tpConnect; {0}];
-if[h>0; 
-  h"(.u.sub[`;`])"; 
-  -1 "RDB connected to TP on port 5010 and subscribed to all symbols.";
+
+-1 ">>> RDB waiting for Tickerplant to bind port at ",string tpConnect;
+
+h:0;
+/ Loop infinitely until the connection succeeds
+while[h=0;
+    h:@[hopen; tpConnect; {0}];
+    if[h=0; 
+        system "sleep 1"; / Pause for 1 second before retrying
+    ];
  ];
 
-if[h=0; -1 "Warning: Could not connect to TP. RDB is in standalone mode."];
+-1 ">>> RDB Connected! Subscribing to tables...";
+
+/ Request the table schemas from the Tickerplant
+tables_and_schemas: h"(.u.sub[`;`])";
+
+/ If we received schemas, create them in the RDB's local memory
+if[count tables_and_schemas;
+    {(.[;();:;].)each x} tables_and_schemas;
+ ];
+
+-1 ">>> RDB Initialization Complete. Subscribed to all symbols.";

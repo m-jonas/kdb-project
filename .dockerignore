@@ -1,2 +1,5 @@
 hdb/
 tplog/
+data/
+*.gz
+*.NASDAQ_ITCH50
