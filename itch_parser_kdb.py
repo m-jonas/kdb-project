@@ -152,8 +152,8 @@ def parse_itch_file(filepath):
                     print("  >>> PUBLISHING TO KDB+ TICKERPLANT...")
                     
                     # 2. Construct the KDB+ update query
-                    q_msg = f".u.upd[`bbo; (enlist {ns_time}n; enlist `{TARGET_TICKER}; enlist {bid_size}j; enlist {best_bid}f; enlist {ask_size}j; enlist {best_ask}f)]"
-                    
+                    # q_msg = f".u.upd[`bbo; (enlist {ns_time}n; enlist `{TARGET_TICKER}; enlist {bid_size}j; enlist {best_bid}f; enlist {ask_size}j; enlist {best_ask}f)]"
+                    q_msg = f".u.upd[`bbo; (enlist `timespan${ns_time}j; enlist `{TARGET_TICKER}; enlist {bid_size}j; enlist {best_bid}f; enlist {ask_size}j; enlist {best_ask}f)]"
                     # 3. Send msg asynchronously
                     q(q_msg, wait=False)
                     
