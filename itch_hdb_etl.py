@@ -139,7 +139,10 @@ def parse_itch_etl(filepath):
         pass
     finally:
         f.close()
-        
+    
+    # DEBUG
+    print(bbo_records[:10])
+    
     print(f"✅ Extraction complete. Processed {msg_count} messages. Generated {len(bbo_records)} BBO updates.")
     
     print("💾 Connecting to KDB+ to bulk write HDB partitions...")
