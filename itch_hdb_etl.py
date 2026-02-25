@@ -140,9 +140,6 @@ def parse_itch_etl(filepath):
     finally:
         f.close()
     
-    # DEBUG
-    print(bbo_records[:10])
-    
     print(f"✅ Extraction complete. Processed {msg_count} messages. Generated {len(bbo_records)} BBO updates.")
     
     print("💾 Connecting to KDB+ to bulk write HDB partitions...")
@@ -159,17 +156,18 @@ def parse_itch_etl(filepath):
         ask_prices = [r['askPrice'] for r in bbo_records]
         
         print("   -> Pushing raw data structures across the network...")
-        # 2. Push raw lists directly into KDB+ temporary variables
-        q['tmp_t'] = times
-        q['tmp_s'] = syms
-        q['tmp_bs'] = bid_sizes
-        q['tmp_bp'] = bid_prices
-        q['tmp_as'] = ask_sizes
-        q['tmp_ap'] = ask_prices
+        # 2. Push strictly typed vectors directly into KDB+ temporary variables
+        q['tmp_t'] = kx.LongVector(times)
+        q['tmp_s'] = kx.SymbolVector(syms)
+        q['tmp_bs'] = kx.LongVector(bid_sizes)
+        q['tmp_bp'] = kx.FloatVector(bid_prices)
+        q['tmp_as'] = kx.LongVector(ask_sizes)
+        q['tmp_ap'] = kx.FloatVector(ask_prices)
         
         print("   -> Assembling and casting un-keyed table natively in KDB+...")
-        # 3. Assemble the table entirely inside KDB+ memory to guarantee perfect types
-        q_build = "bbo_batch: flip `time`sym`bidSize`bidPrice`askSize`askPrice ! (`timespan$tmp_t; `$tmp_s; `long$tmp_bs; `float$tmp_bp; `long$tmp_as; `float$tmp_ap)"
+        # 3. Assemble the table entirely inside KDB+ memory 
+        # (Since they are already perfectly typed, we only need to cast the timespan)
+        q_build = "bbo_batch: flip `time`sym`bidSize`bidPrice`askSize`askPrice ! (`timespan$tmp_t; tmp_s; tmp_bs; tmp_bp; tmp_as; tmp_ap)"
         q(q_build)
         
         print("   -> Executing .Q.dpft to partition and write to disk...")
