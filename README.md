@@ -15,6 +15,7 @@ This project is a high-frequency trading (HFT) data pipeline built with **KDB+/q
 * **Level 3 Binary Data Parsing:** Engineered a highly optimized Python feed handler to ingest, decode, and process raw Nasdaq TotalView-ITCH 5.0 payloads.
 * **Limit Order Book (LOB) State Machine:** In-memory tracking of the complete lifecycle of millions of equity orders (Add, Execute, Cancel, Replace, Delete) in real-time.
 * **Level 3 to Level 2 Aggregation:** Extracts actionable Best Bid and Offer (BBO) signals from the L3 firehose, highly compressing data before async publication to KDB+.
+* **Historical Data ETL:** High-performance Python ETL pipeline to extract Level 2 BBO from historical ITCH binaries and bulk load natively partitioned data directly to disk via `.Q.dpft`.
 * **Crypto Ingestion:** Normalizes WebSocket JSON feeds (Coinbase, Kraken) into kdb+ IPC updates.
 * **Complex Event Processing (CEP):** Real-time Vectorized VWAP, Order Book Imbalance, and continuous OHLCV bar generation.
 * **Persistence:** End-of-Day (EOD) logic to flush in-memory data to on-disk partitioned Historical Databases (HDB).
@@ -89,6 +90,13 @@ q) h"count bbo"       / Check Nasdaq Level 2 updates
 q) h"select top 10 from bbo"
 ```
 
+**Historical Data ETL (Batch Processing)**
+To bypass the Real-Time Tickerplant and bulk load historical data directly into the partitioned HDB:
+```
+python itch_hdb_etl.py
+```
+*This script parses the binary ITCH file, extracts the BBO, converts the data into pure KDB+ typed vectors, and natively saves it to disk via `.Q.dpft.`*
+
 **Data Persistence (HDB)**
 The system is designed to save data to disk automatically at midnight. To test this manually (Force EOD):
 ```
@@ -130,6 +138,8 @@ Infrastructure & Analytics (KDB+)
 Market Data Handlers (Python)
 
 - `itch_parser_kdb.py` - Core L3 ITCH parser, L2 aggregator, and PyKX publisher.
+
+- `itch_hdb_etl.py` - High-performance Historical ETL pipeline for bulk KDB+ HDB onboarding.
 
 - `itch_parser_dash.py` - Terminal-based visual Depth of Market (DOM) ladder.
 
