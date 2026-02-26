@@ -28,14 +28,28 @@ calcImbalance:{[bidSize; askSize] (bidSize-askSize)%(bidSize+askSize)};
 
 / 4. The Update Function (.u.upd)
 upd:{[t;x]
+    / --- LIVE CRYPTO ANALYTICS & TRADING ---
     if[t~`ticker;
         / A. Real-Time VWAP
-        / Aggregate incoming updates by symbol to handle batch updates with duplicate symbols
         agg:select totalVol:sum size, totalVal:sum price*size by sym from x;
         vwapState+::agg;
 
         / B. Buffer for OHLC
         tradeBuffer,::select time, sym, price, size from x;
+
+        / C. ALGO SIGNAL GENERATOR (Tight Spread)
+        / Check if the Crypto spread is incredibly tight (<= $0.50 for BTC)
+        tight_spreads: select from x where (ask - bid) <= 0.50;
+        
+        if[count tight_spreads;
+            / Construct the FIX-ready signal (Buy 1 BTC)
+            new_signals: select time:.z.n, sym:sym, side:`BUY, qty:1j, price:ask from tight_spreads;
+            
+            / Publish the signal back to the Tickerplant so the Gateway can catch it!
+            h(`.u.upd; `signals; value flip new_signals);
+            
+            -1 "!!! TIGHT SPREAD DETECTED: Firing BUY signal for ", string[count new_signals], " BTC !!!";
+        ];
     ];
  };
 

@@ -26,15 +26,39 @@ The system follows a standard **kdb+tick** architecture, decoupled into microser
 
 ```mermaid
 graph TD
+    %% Market Data
     A[Coinbase/Kraken WebSockets] -->|JSON| B(Crypto Feed Handlers)
     I[Nasdaq ITCH 5.0 Binary] -->|Struct Unpack| J(L3 to L2 Python Engine)
+    
+    %% KDB+ Infrastructure
     B -->|PyKX IPC| C{Tickerplant :5010}
     J -->|PyKX IPC Async| C
     C -->|Upd| D[RDB :5011]
     C -->|Upd| E[CEP Engine :5012]
     D -->|End of Day| F[(HDB Disk)]
     E -->|Query| G[Streamlit Dashboard]
+    
+    %% Algo Execution
+    E -->|Trigger| K[(Signals Table)]
+    K -->|PyKX Poll| L[Python FIX Gateway]
+    L -->|FIX 4.2 TCP| M[Mock Exchange]
 ```
+
+## 🧠 Architecture Concepts: Decoupling Data & Execution
+
+A core design principle of this project is the strict separation of **Market Data Ingestion** from **Order Execution**, mirroring institutional High-Frequency Trading (HFT) environments.
+
+### 1. Unified Symbology & First-Come-First-Served Data
+The system ingests live crypto data simultaneously from multiple disconnected venues (Coinbase and Kraken). 
+* **Symbology Mapping:** Feed handlers intercept exchange-specific tickers (e.g., Kraken's `XBT/USD`) and map them to a unified internal symbol (`BTC-USD`).
+* **Interleaved Storage:** KDB+ **does not** average or alter the incoming prices. Data is appended to the `ticker` table sequentially in real-time on a strict first-come, first-served basis.
+* **Global Order Book:** By maintaining unmodified prices under a single symbol, the Complex Event Processing (CEP) engine can evaluate a "Global Fair Value" and trigger algorithms (like Tight Spread detection) across the entire market simultaneously, regardless of the originating exchange.
+
+### 2. Execution Routing (FIX Protocol)
+When the CEP engine detects a trading opportunity, it generates an execution signal.
+* The system relies on a standalone **FIX 4.2 Gateway** that polls KDB+ for signals and translates them into standardized Wall Street `New Order Single` payloads.
+* Rather than sending the order directly back to Coinbase or Kraken via REST API, the Gateway routes it to a decoupled **Mock Matching Engine** (`mock_exchange.py`). 
+* In a production environment, this mimics a **Smart Order Router (SOR)** dynamically directing trades to a Prime Broker or Dark Pool, completely independent of the venues providing the market data.
 
 ## 🚀 Quick Start (Docker)
 The easiest way to run the stack is via Docker Compose.
