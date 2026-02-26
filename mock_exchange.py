@@ -1,9 +1,10 @@
 import socket
 import simplefix
 import time
+import os
 
 # --- CONFIG ---
-HOST = '127.0.0.1'
+HOST = os.getenv('EXCHANGE_HOST', '0.0.0.0')
 PORT = 9876
 
 def run_mock_exchange():

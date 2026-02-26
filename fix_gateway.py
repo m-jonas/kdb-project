@@ -2,12 +2,13 @@ import socket
 import pykx as kx
 import simplefix
 import time
+import os
 
 # --- CONFIG ---
-KDB_HOST = '127.0.0.1'
-KDB_PORT = 5011   # Connect to RDB to safely query the signals table
-EXCHANGE_HOST = '127.0.0.1'
-EXCHANGE_PORT = 9876
+KDB_HOST = os.getenv('KDB_HOST', '127.0.0.1')
+KDB_PORT = int(os.getenv('KDB_PORT', 5011))
+EXCHANGE_HOST = os.getenv('EXCHANGE_HOST', '127.0.0.1')
+EXCHANGE_PORT = int(os.getenv('EXCHANGE_PORT', 9876))
 
 def run_gateway():
     # 1. Connect to the Mock Exchange
