@@ -37,18 +37,18 @@ upd:{[t;x]
         / B. Buffer for OHLC
         tradeBuffer,::select time, sym, price, size from x;
 
-        / C. ALGO SIGNAL GENERATOR (Momentum Follower)
-        / If we see a single trade with a size greater than 0.5 (e.g., half a Bitcoin), trigger a trade!
-        whale_trades: select from x where size > 0.5;
+        / C. ALGO SIGNAL GENERATOR (Tight Spread)
+        / Check if the Crypto spread is incredibly tight (<= $0.50 for BTC)
+        tight_spreads: select from x where (ask - bid) <= 0.50;
         
-        if[count whale_trades;
-            / Construct the FIX-ready signal (We'll default to buying 1 unit)
-            new_signals: select time:.z.n, sym:sym, side:`BUY, qty:1j, price:price from whale_trades;
+        if[count tight_spreads;
+            / Construct the FIX-ready signal (Buy 1 BTC)
+            new_signals: select time:.z.n, sym:sym, side:`BUY, qty:1j, price:ask from tight_spreads;
             
-            / Publish the signal back to the Tickerplant
+            / Publish the signal back to the Tickerplant so the Gateway can catch it!
             h(`.u.upd; `signals; value flip new_signals);
             
-            -1 "!!! WHALE DETECTED: Firing momentum signal for ", string[count new_signals], " trade(s) !!!";
+            -1 "!!! TIGHT SPREAD DETECTED: Firing BUY signal for ", string[count new_signals], " BTC !!!";
         ];
     ];
  };
