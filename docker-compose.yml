@@ -1,5 +1,5 @@
 services:
-  # 1. TP
+
   tp:
     build: .
     container_name: kdb_tp
@@ -16,8 +16,6 @@ services:
     networks:
       - kdb_net
 
-  # 2. RDB
-# 2. RDB
   rdb:
     build: .
     container_name: kdb_rdb
@@ -36,7 +34,6 @@ services:
     networks:
       - kdb_net
 
-  # 3. CEP Engine
   cep:
     build: .
     container_name: kdb_cep
@@ -53,7 +50,6 @@ services:
     networks:
       - kdb_net
 
-  # 4. Feed Handler
   feed-coinbase:
     build: .
     container_name: kdb_feed
@@ -81,7 +77,30 @@ services:
       networks:
         - kdb_net
 
-  # 5. Dashboard
+  mock-exchange:
+    build: .
+    container_name: kdb_mock_exchange
+    command: python mock_exchange.py
+    ports:
+      - "9876:9876"
+    networks:
+      - kdb_net
+
+  fix-gateway:
+    build: .
+    container_name: kdb_fix_gateway
+    command: python fix_gateway.py
+    depends_on:
+      - rdb
+      - mock-exchange
+    environment:
+      - KDB_HOST=rdb
+      - KDB_PORT=5011
+      - EXCHANGE_HOST=mock-exchange
+      - EXCHANGE_PORT=9876
+    networks:
+      - kdb_net
+
   dashboard:
     build: .
     container_name: kdb_dash
