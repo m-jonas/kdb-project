@@ -60,6 +60,12 @@ When the CEP engine detects a trading opportunity, it generates an execution sig
 * Rather than sending the order directly back to Coinbase or Kraken via REST API, the Gateway routes it to a decoupled **Mock Matching Engine** (`mock_exchange.py`). 
 * In a production environment, this mimics a **Smart Order Router (SOR)** dynamically directing trades to a Prime Broker or Dark Pool, completely independent of the venues providing the market data.
 
+### 3. Algorithmic Execution Logic (Tight Spread)
+To demonstrate a complete tick-to-trade lifecycle, this project implements a sample **Tight Spread / Market Maker** strategy:
+* **Signal Generation (KDB+ CEP):** The CEP engine continuously evaluates the real-time spread (Ask - Bid) across the unified global order book. If the spread compresses to an ultra-tight threshold (e.g., ≤ $0.50 for BTC), indicating high liquidity and low execution friction, KDB+ instantly inserts a `BUY` order into the in-memory `signals` table.
+* **Order Transmission (FIX Gateway):** The `fix_gateway.py` service continuously polls the KDB+ `signals` table. Upon detecting a newly generated signal, it constructs a standardized FIX 4.2 `New Order Single` (MsgType=D) string and transmits it over a TCP socket.
+* **Order Matching (Mock Exchange):** Because we cannot send test orders to live institutional venues, `mock_exchange.py` acts as a dummy matching engine. It receives the inbound FIX 4.2 order, simulates exchange processing latency, and automatically replies with a FIX `Execution Report` (MsgType=8) confirming the order as "Filled".
+
 ## 🚀 Quick Start (Docker)
 The easiest way to run the stack is via Docker Compose.
 
@@ -147,34 +153,25 @@ Expected Output:
 
 ## 📂 Project Structure
 
-Infrastructure & Analytics (KDB+)
+**Infrastructure & Analytics (KDB+)**
+* `tick.q` - Master Tickerplant routing engine.
+* `r.q` - Fault-tolerant Real-Time Database (RDB) with robust connection retry logic.
+* `cep.q` - Complex Event Processing engine for VWAP, OHLC generation, and Algo Signal generation.
+* `tick/sym.q` - Schema definitions for ticker (Crypto), bbo (Equities), and signals tables.
+* `hdb/` - On-disk partitioned historical database.
 
-- `tick.q` - Master Tickerplant routing engine.
+**Market Data Handlers (Python)**
+* `itch_parser_kdb.py` - Core L3 ITCH parser, L2 aggregator, and PyKX publisher.
+* `itch_hdb_etl.py` - High-performance Historical ETL pipeline for bulk KDB+ HDB onboarding.
+* `itch_parser_dash.py` - Terminal-based visual Depth of Market (DOM) ladder.
+* `coinbase_feedhandler.py` - Async WebSocket ingestion for Coinbase.
+* `kraken_feedhandler.py` - Async WebSocket ingestion for Kraken.
 
-- `r.q` - Fault-tolerant Real-Time Database (RDB) with robust connection retry logic.
+**Algo Execution (Python)**
+* `fix_gateway.py` - KDB+ polling service that translates internal trading signals into raw FIX 4.2 network payloads.
+* `mock_exchange.py` - TCP-based dummy matching engine that receives FIX orders and auto-replies with execution fill reports.
 
-- `cep.q` - Complex Event Processing engine for VWAP and OHLC generation.
-
-- `tick/sym.q` - Schema definitions for ticker (Crypto) and bbo (Equities) tables.
-
-- `hdb/` - On-disk partitioned historical database.
-
-Market Data Handlers (Python)
-
-- `itch_parser_kdb.py` - Core L3 ITCH parser, L2 aggregator, and PyKX publisher.
-
-- `itch_hdb_etl.py` - High-performance Historical ETL pipeline for bulk KDB+ HDB onboarding.
-
-- `itch_parser_dash.py` - Terminal-based visual Depth of Market (DOM) ladder.
-
-- `coinbase_feedhandler.py` - Async WebSocket ingestion for Coinbase.
-
-- `kraken_feedhandler.py` - Async WebSocket ingestion for Kraken.
-
-Ops & Visuals
-
-- `dashboard.py` - Streamlit application querying the CEP engine.
-
-- `docker-compose.yml` - Microservices orchestration.
-
-- `prometheus.yml` / `monitor.q` - Infrastructure observability stack.
+**Ops & Visuals**
+* `dashboard.py` - Streamlit application querying the CEP engine.
+* `docker-compose.yml` - Microservices orchestration.
+* `prometheus.yml` / `monitor.q` - Infrastructure observability stack.
