@@ -28,14 +28,28 @@ calcImbalance:{[bidSize; askSize] (bidSize-askSize)%(bidSize+askSize)};
 
 / 4. The Update Function (.u.upd)
 upd:{[t;x]
+    / --- LIVE CRYPTO ANALYTICS & TRADING ---
     if[t~`ticker;
         / A. Real-Time VWAP
-        / Aggregate incoming updates by symbol to handle batch updates with duplicate symbols
         agg:select totalVol:sum size, totalVal:sum price*size by sym from x;
         vwapState+::agg;
 
         / B. Buffer for OHLC
         tradeBuffer,::select time, sym, price, size from x;
+
+        / C. ALGO SIGNAL GENERATOR (Momentum Follower)
+        / If we see a single trade with a size greater than 0.5 (e.g., half a Bitcoin), trigger a trade!
+        whale_trades: select from x where size > 0.5;
+        
+        if[count whale_trades;
+            / Construct the FIX-ready signal (We'll default to buying 1 unit)
+            new_signals: select time:.z.n, sym:sym, side:`BUY, qty:1j, price:price from whale_trades;
+            
+            / Publish the signal back to the Tickerplant
+            h(`.u.upd; `signals; value flip new_signals);
+            
+            -1 "!!! WHALE DETECTED: Firing momentum signal for ", string[count new_signals], " trade(s) !!!";
+        ];
     ];
  };
 
