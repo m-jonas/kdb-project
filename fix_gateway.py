@@ -72,7 +72,7 @@ def run_gateway():
                         if reply and reply.get(35).decode() == '8':
                             print(f"<<< FILL CONFIRMED: Executed {qty} shares @ ${price}")
                 
-                # Update our tracker
+                # Update tracker
                 last_processed_row = current_count
                 
             time.sleep(1) # Poll every second
