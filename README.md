@@ -26,14 +26,22 @@ The system follows a standard **kdb+tick** architecture, decoupled into microser
 
 ```mermaid
 graph TD
+    %% Market Data
     A[Coinbase/Kraken WebSockets] -->|JSON| B(Crypto Feed Handlers)
     I[Nasdaq ITCH 5.0 Binary] -->|Struct Unpack| J(L3 to L2 Python Engine)
+    
+    %% KDB+ Infrastructure
     B -->|PyKX IPC| C{Tickerplant :5010}
     J -->|PyKX IPC Async| C
     C -->|Upd| D[RDB :5011]
     C -->|Upd| E[CEP Engine :5012]
     D -->|End of Day| F[(HDB Disk)]
     E -->|Query| G[Streamlit Dashboard]
+    
+    %% Algo Execution
+    E -->|Trigger| K[(Signals Table)]
+    K -->|PyKX Poll| L[Python FIX Gateway]
+    L -->|FIX 4.2 TCP| M[Mock Exchange]
 ```
 
 ## 🚀 Quick Start (Docker)
