@@ -17,6 +17,7 @@ services:
       - kdb_net
 
   # 2. RDB
+# 2. RDB
   rdb:
     build: .
     container_name: kdb_rdb
@@ -30,6 +31,8 @@ services:
     volumes:
       - ./kc.lic:/opt/q/kc.lic
       - ./hdb:/app/hdb
+    ports:
+      - "5011:5011"
     networks:
       - kdb_net
 
