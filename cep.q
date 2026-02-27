@@ -17,14 +17,15 @@ ohlc:([time:`timespan$(); sym:`symbol$()]
     low:`float$(); 
     close:`float$(); 
     volume:`float$();
-    vwap:`float$()
+    vwap:`float$();
+    imbalance:`float$()
  );
 
 / Buffer matches the specific columns we need from the ticker
-tradeBuffer:([] time:`timespan$(); sym:`symbol$(); price:`float$(); size:`float$());
+tradeBuffer:([] time:`timespan$(); sym:`symbol$(); price:`float$(); size:`float$(); bidSize:`float$(); askSize:`float$());
 
 / 3. Helper Functions
-calcImbalance:{[bidSize; askSize] (bidSize-askSize)%(bidSize+askSize)};
+calcImbalance:{[bidSize;askSize] (bidSize-askSize)%(bidSize+askSize)};
 
 / 4. The Update Function (.u.upd)
 upd:{[t;x]
@@ -35,19 +36,14 @@ upd:{[t;x]
         vwapState+::agg;
 
         / B. Buffer for OHLC
-        tradeBuffer,::select time, sym, price, size from x;
+        tradeBuffer,::select time, sym, price, size, bidSize, askSize from x;
 
         / C. ALGO SIGNAL GENERATOR (Tight Spread)
-        / Check if the Crypto spread is incredibly tight (<= $0.50 for BTC)
         tight_spreads: select from x where (ask - bid) <= 0.50;
         
         if[count tight_spreads;
-            / Construct the FIX-ready signal (Buy 1 BTC)
             new_signals: select time:.z.n, sym:sym, side:`BUY, qty:1j, price:ask from tight_spreads;
-            
-            / Publish the signal back to the Tickerplant so the Gateway can catch it!
             h(`.u.upd; `signals; value flip new_signals);
-            
             -1 "!!! TIGHT SPREAD DETECTED: Firing BUY signal for ", string[count new_signals], " BTC !!!";
         ];
     ];
@@ -59,23 +55,24 @@ upd:{[t;x]
     completed:select from tradeBuffer where time < cutoff;
     
     if[count completed;
-        / Calculate OHLC bars
+        / Calculate OHLC bars and Imbalance
         bars:select 
             open:first price, 
             high:max price, 
             low:min price, 
             close:last price, 
             volume:sum size,
-            vwap:(sum price*size) % sum size
+            vwap:(sum price*size) % sum size,
+            imbalance:last calcImbalance[bidSize;askSize]
             by time:(ONE_MIN xbar time), sym 
             from completed;
-        
-        / Persist to global table
+            
+        / Persist to global table using upsert (safely maps columns by name)
         `ohlc upsert bars;
         
         -1 ">>> OHLC Bar Published: ", string .z.T;
         
-        / Clean buffer (Explicit global assignment to fix memory leak)
+        / Clean buffer
         tradeBuffer::delete from tradeBuffer where time < cutoff;
     ];
  };

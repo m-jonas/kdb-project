@@ -99,8 +99,12 @@ while True:
             # Add a unique key based on time to prevent ID collisions during live updates
             unique_key = f"chart_{time.time()}"
             st.plotly_chart(fig, width='stretch', key=unique_key)
-            
-            # Data Table (Optional)
+
+            st.subheader("Order Book Imbalance (-1.0 to 1.0)")
+            # Positive (Buy Pressure), Negative (Sell Pressure)
+            st.bar_chart(df.set_index('datetime')['imbalance'])
+
+            # Data Table
             with st.expander("Raw Data (OHLC Table)"):
                 st.dataframe(df.sort_values(by='time', ascending=False).head(10))
         else:
