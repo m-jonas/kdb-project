@@ -6,7 +6,7 @@
 | Crypto Real-Time Dashboard | Nasdaq L2 Depth of Market (Terminal) |
 | :---: | :---: |
 | ![Dashboard](images/dashboard.png) | ![ITCH DOM](images/Screenshot%202026-02-19%20204559.png) |
-| *Live Streamlit dashboard visualizing 1-minute OHLC bars and VWAP from KDB+ CEP engine.* | *Terminal-based Level 2 Order Book built from raw binary ITCH 5.0 payloads.* |
+| *Live Streamlit dashboard visualizing 1-minute OHLC bars, VWAP, Order Book Imbalance, and Real-Time Spread Dynamics (Average & Max Spread) from KDB+ CEP engine.* | *Terminal-based Level 2 Order Book built from raw binary ITCH 5.0 payloads.* |
 
 ## 📖 Project Overview
 This project is a high-frequency trading (HFT) data pipeline built with **KDB+/q** and **Python**. It mimics an institutional "Tick Architecture" to process both unstructured WebSockets (Crypto) and raw binary network streams (Traditional Equities) into a centralized, high-performance database with microsecond latency.
@@ -17,7 +17,7 @@ This project is a high-frequency trading (HFT) data pipeline built with **KDB+/q
 * **Level 3 to Level 2 Aggregation:** Extracts actionable Best Bid and Offer (BBO) signals from the L3 firehose, highly compressing data before async publication to KDB+.
 * **Historical Data ETL:** High-performance Python ETL pipeline to extract Level 2 BBO from historical ITCH binaries and bulk load natively partitioned data directly to disk via `.Q.dpft`.
 * **Crypto Ingestion:** Normalizes WebSocket JSON feeds (Coinbase, Kraken) into kdb+ IPC updates.
-* **Complex Event Processing (CEP):** Real-time Vectorized VWAP, Order Book Imbalance, and continuous OHLCV bar generation.
+* **Complex Event Processing (CEP):** Real-time Vectorized VWAP, Order Book Imbalance, continuous OHLCV bar generation, and advanced Spread Analytics (tracking average and maximum spread to detect liquidity holes).
 * **Persistence:** End-of-Day (EOD) logic to flush in-memory data to on-disk partitioned Historical Databases (HDB).
 * **Ops & Observability:** Fully containerized microservices architecture with Prometheus and Grafana monitoring.
 
@@ -156,7 +156,7 @@ Expected Output:
 **Infrastructure & Analytics (KDB+)**
 * `tick.q` - Master Tickerplant routing engine.
 * `r.q` - Fault-tolerant Real-Time Database (RDB) with robust connection retry logic.
-* `cep.q` - Complex Event Processing engine for VWAP, OHLC generation, and Algo Signal generation.
+* `cep.q` - Complex Event Processing engine for VWAP, OHLC generation, Order Book Imbalance, Spread Analytics, and Algo Signal generation.
 * `tick/sym.q` - Schema definitions for ticker (Crypto), bbo (Equities), and signals tables.
 * `hdb/` - On-disk partitioned historical database.
 
@@ -172,6 +172,6 @@ Expected Output:
 * `mock_exchange.py` - TCP-based dummy matching engine that receives FIX orders and auto-replies with execution fill reports.
 
 **Ops & Visuals**
-* `dashboard.py` - Streamlit application querying the CEP engine.
+* `dashboard.py` - Streamlit application querying the CEP engine to visualize OHLCV, VWAP, Imbalance, and Spread Dynamics.
 * `docker-compose.yml` - Microservices orchestration.
 * `prometheus.yml` / `monitor.q` - Infrastructure observability stack.

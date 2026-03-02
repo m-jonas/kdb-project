@@ -18,11 +18,13 @@ ohlc:([time:`timespan$(); sym:`symbol$()]
     close:`float$(); 
     volume:`float$();
     vwap:`float$();
-    imbalance:`float$()
+    imbalance:`float$();
+    avg_spread:`float$();
+    max_spread:`float$()
  );
 
 / Buffer matches the specific columns we need from the ticker
-tradeBuffer:([] time:`timespan$(); sym:`symbol$(); price:`float$(); size:`float$(); bidSize:`float$(); askSize:`float$());
+tradeBuffer:([] time:`timespan$(); sym:`symbol$(); price:`float$(); size:`float$(); bid:`float$(); ask:`float$(); bidSize:`float$(); askSize:`float$());
 
 / 3. Helper Functions
 calcImbalance:{[bidSize;askSize] (bidSize-askSize)%(bidSize+askSize)};
@@ -36,11 +38,10 @@ upd:{[t;x]
         vwapState+::agg;
 
         / B. Buffer for OHLC
-        tradeBuffer,::select time, sym, price, size, bidSize, askSize from x;
+        tradeBuffer,::select time, sym, price, size, bid, ask, bidSize, askSize from x;
 
         / C. ALGO SIGNAL GENERATOR (Tight Spread)
         tight_spreads: select from x where (ask - bid) <= 0.50;
-        
         if[count tight_spreads;
             new_signals: select time:.z.n, sym:sym, side:`BUY, qty:1j, price:ask from tight_spreads;
             h(`.u.upd; `signals; value flip new_signals);
@@ -55,7 +56,7 @@ upd:{[t;x]
     completed:select from tradeBuffer where time < cutoff;
     
     if[count completed;
-        / Calculate OHLC bars and Imbalance
+        / Calculate OHLC bars, Imbalance, and Spread
         bars:select 
             open:first price, 
             high:max price, 
@@ -63,7 +64,9 @@ upd:{[t;x]
             close:last price, 
             volume:sum size,
             vwap:(sum price*size) % sum size,
-            imbalance:last calcImbalance[bidSize;askSize]
+            imbalance:avg calcImbalance[bidSize;askSize],
+            avg_spread:avg (ask - bid),
+            max_spread:max (ask - bid)
             by time:(ONE_MIN xbar time), sym 
             from completed;
             
@@ -81,6 +84,7 @@ upd:{[t;x]
 if[not system"p"; system"p 5012"];
 tpHost:getenv[`TP_HOST];
 tpConnect:$[count tpHost; hsym `$(tpHost,":5010"); `:localhost:5010];
+
 -1 "Connecting to TP at ",string tpConnect;
 h:@[hopen; tpConnect; {0}];
 if[h>0; h"(.u.sub[`ticker;`])"; -1 "CEP Connected."];

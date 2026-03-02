@@ -72,11 +72,13 @@ while True:
             last_close = df.iloc[-1]['close']
             last_vwap = df.iloc[-1]['vwap']
             vol_sum = df['volume'].sum()
+            current_avg_spread = df.iloc[-1]['avg_spread']
             
-            c1, c2, c3 = st.columns(3)
+            c1, c2, c3, c4 = st.columns(4)
             c1.metric("Last Price", f"${last_close:,.2f}")
             c2.metric("VWAP (1m)", f"${last_vwap:,.2f}", delta=f"{last_close-last_vwap:.2f}")
             c3.metric("Total Volume", f"{vol_sum:,.4f}")
+            c4.metric("Avg Spread", f"${current_avg_spread:,.2f}")
 
             # Candlestick Chart
             fig = go.Figure(data=[go.Candlestick(
@@ -103,6 +105,18 @@ while True:
             st.subheader("Order Book Imbalance (-1.0 to 1.0)")
             # Positive (Buy Pressure), Negative (Sell Pressure)
             st.bar_chart(df.set_index('datetime')['imbalance'])
+
+            st.subheader("Spread Dynamics (Ask - Bid)")
+            
+            # Plot both Average and Max Spread to see liquidity shocks
+            fig_spread = go.Figure()
+            fig_spread.add_trace(go.Scatter(x=df['datetime'], y=df['avg_spread'], 
+                                            mode='lines', name='Avg Spread', line=dict(color='#ffaa00')))
+            fig_spread.add_trace(go.Scatter(x=df['datetime'], y=df['max_spread'], 
+                                            mode='lines', name='Max Spread (Liquidity Holes)', line=dict(color='#ff4444', dash='dot')))
+            
+            fig_spread.update_layout(template="plotly_dark", height=300, margin=dict(l=0, r=0, t=30, b=0))
+            st.plotly_chart(fig_spread, use_container_width=True, key=f"spread_{time.time()}")
 
             # Data Table
             with st.expander("Raw Data (OHLC Table)"):
