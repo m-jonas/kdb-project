@@ -116,7 +116,7 @@ while True:
                                             mode='lines', name='Max Spread (Liquidity Holes)', line=dict(color='#ff4444', dash='dot')))
             
             fig_spread.update_layout(template="plotly_dark", height=300, margin=dict(l=0, r=0, t=30, b=0))
-            st.plotly_chart(fig_spread, use_container_width=True, key=f"spread_{time.time()}")
+            st.plotly_chart(fig_spread, width='stretch', key=f"spread_{time.time()}")
 
             # Data Table
             with st.expander("Raw Data (OHLC Table)"):
