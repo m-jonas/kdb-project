@@ -95,30 +95,52 @@ while True:
                 xaxis_title="Time",
                 yaxis_title="Price (USD)",
                 template="plotly_dark",
-                height=600
+                height=600,
+                xaxis_rangeslider_visible=True
             )
             
             # Add a unique key based on time to prevent ID collisions during live updates
-            unique_key = f"chart_{time.time()}"
-            st.plotly_chart(fig, width='stretch', key=unique_key)
+            st.plotly_chart(fig, use_container_width=True, key=f"chart_{time.time()}")
 
+            # 2. Order Book Imbalance Chart
             st.subheader("Order Book Imbalance (-1.0 to 1.0)")
-            # Positive (Buy Pressure), Negative (Sell Pressure)
-            st.bar_chart(df.set_index('datetime')['imbalance'])
+            
+            # Color code: Green for positive (Buy), Red for negative (Sell)
+            imb_colors = ['#2ca02c' if val > 0 else '#d62728' for val in df['imbalance']]
+            
+            fig_imb = go.Figure(data=[go.Bar(
+                x=df['datetime'],
+                y=df['imbalance'],
+                marker_color=imb_colors,
+                name='Imbalance'
+            )])
+            
+            fig_imb.update_layout(
+                template="plotly_dark", 
+                height=300, 
+                margin=dict(l=0, r=0, t=10, b=0),
+                xaxis_rangeslider_visible=True
+            )
+            st.plotly_chart(fig_imb, use_container_width=True, key=f"imb_{time.time()}")
 
+            # 3. Spread Dynamics Chart
             st.subheader("Spread Dynamics (Ask - Bid)")
             
-            # Plot both Average and Max Spread to see liquidity shocks
             fig_spread = go.Figure()
             fig_spread.add_trace(go.Scatter(x=df['datetime'], y=df['avg_spread'], 
                                             mode='lines', name='Avg Spread', line=dict(color='#ffaa00')))
             fig_spread.add_trace(go.Scatter(x=df['datetime'], y=df['max_spread'], 
-                                            mode='lines', name='Max Spread (Liquidity Holes)', line=dict(color='#ff4444', dash='dot')))
+                                            mode='lines', name='Max Spread', line=dict(color='#ff4444', dash='dot')))
             
-            fig_spread.update_layout(template="plotly_dark", height=300, margin=dict(l=0, r=0, t=30, b=0))
+            fig_spread.update_layout(
+                template="plotly_dark", 
+                height=300, 
+                margin=dict(l=0, r=0, t=10, b=0),
+                xaxis_rangeslider_visible=True
+            )
             st.plotly_chart(fig_spread, use_container_width=True, key=f"spread_{time.time()}")
 
-            # Data Table
+            # 4. Data Table
             with st.expander("Raw Data (OHLC Table)"):
                 st.dataframe(df.sort_values(by='time', ascending=False).head(10))
         else:
