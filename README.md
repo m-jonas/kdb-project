@@ -5,7 +5,7 @@
 ## 📊 System Visualizations
 | Crypto Real-Time Dashboard | Nasdaq L2 Depth of Market (Terminal) |
 | :---: | :---: |
-| ![Dashboard](images/dashboard.png) | ![ITCH DOM](images/Screenshot%202026-02-19%20204559.png) |
+| ![Dashboard](images/dashb.png) | ![ITCH DOM](images/Screenshot%202026-02-19%20204559.png) |
 | *Live Streamlit dashboard visualizing 1-minute OHLC bars, VWAP, Order Book Imbalance, and Real-Time Spread Dynamics (Average & Max Spread) from KDB+ CEP engine.* | *Terminal-based Level 2 Order Book built from raw binary ITCH 5.0 payloads.* |
 
 ## 📖 Project Overview
