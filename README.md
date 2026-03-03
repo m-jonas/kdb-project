@@ -17,7 +17,7 @@ This project is a high-frequency trading (HFT) data pipeline built with **KDB+/q
 * **Level 3 to Level 2 Aggregation:** Extracts actionable Best Bid and Offer (BBO) signals from the L3 firehose, highly compressing data before async publication to KDB+.
 * **Historical Data ETL:** High-performance Python ETL pipeline to extract Level 2 BBO from historical ITCH binaries and bulk load natively partitioned data directly to disk via `.Q.dpft`.
 * **Crypto Ingestion:** Normalizes WebSocket JSON feeds (Coinbase, Kraken) into kdb+ IPC updates.
-* **Complex Event Processing (CEP):** Real-time Vectorized VWAP, Order Book Imbalance, continuous OHLCV bar generation, and advanced Spread Analytics (tracking average and maximum spread to detect liquidity holes).
+* **Complex Event Processing (CEP):** Real-time Vectorized VWAP, Order Book Imbalance, continuous OHLCV bar generation, and advanced Spread Analytics (tracking average and maximum spread to detect liquidity holes). These analytics automatically trigger trading signals that are polled by a dedicated FIX 4.2 Gateway and routed to a TCP-based Mock Matching Engine to simulate a complete, ultra-low latency tick-to-trade lifecycle.
 * **Persistence:** End-of-Day (EOD) logic to flush in-memory data to on-disk partitioned Historical Databases (HDB).
 * **Ops & Observability:** Fully containerized microservices architecture with Prometheus and Grafana monitoring.
 
