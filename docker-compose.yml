@@ -5,16 +5,12 @@ services:
     container_name: kdb_tp
     hostname: ${KDB_HOSTNAME}
     command: q tick.q sym . -p 5010
-    ports:
-      - "5010:5010"
+    # share the host's physical network interface natively to reduce latency
+    network_mode: "host"
     volumes:
-      # Mount the license file from host to container
       - ./kc.lic:/opt/q/kc.lic
-      # Persist the TP log file to disk
       - ./tplog:/app/tplog
       - ./monitor.q:/app/monitor.q
-    networks:
-      - kdb_net
 
   rdb:
     build: .
@@ -23,16 +19,13 @@ services:
     command: q r.q -p 5011
     depends_on:
       - tp
+    network_mode: "host"
     environment:
       - HDB_PATH=/app/hdb
-      - TP_HOST=tp
+      - TP_HOST=127.0.0.1  # Changed from 'tp'
     volumes:
       - ./kc.lic:/opt/q/kc.lic
       - ./hdb:/app/hdb
-    ports:
-      - "5011:5011"
-    networks:
-      - kdb_net
 
   cep:
     build: .
@@ -41,14 +34,11 @@ services:
     command: q cep.q -p 5012
     depends_on:
       - tp
+    network_mode: "host"
     environment:
-      - TP_HOST=tp
+      - TP_HOST=127.0.0.1  # Changed from 'tp'
     volumes:
       - ./kc.lic:/opt/q/kc.lic
-    ports:
-      - "5012:5012"
-    networks:
-      - kdb_net
 
   feed-coinbase:
     build: .
@@ -56,14 +46,13 @@ services:
     command: python coinbase_feedhandler.py
     depends_on:
       - tp
+    network_mode: "host"
     environment:
-      - TP_HOST=tp 
+      - TP_HOST=127.0.0.1  # Changed from 'tp'
       - TP_PORT=5010
       - COINBASE_KEY_FILE=/app/cdp_api_key.json
     volumes:
       - ./cdp_api_key.json:/app/cdp_api_key.json
-    networks:
-      - kdb_net
 
   feed-kraken:
       build: .
@@ -71,20 +60,16 @@ services:
       command: python kraken_feedhandler.py
       depends_on:
         - tp
+      network_mode: "host"
       environment:
-        - TP_HOST=tp 
+        - TP_HOST=127.0.0.1  # Changed from 'tp'
         - TP_PORT=5010
-      networks:
-        - kdb_net
 
   mock-exchange:
     build: .
     container_name: kdb_mock_exchange
     command: python mock_exchange.py
-    ports:
-      - "9876:9876"
-    networks:
-      - kdb_net
+    network_mode: "host"
 
   fix-gateway:
     build: .
@@ -93,13 +78,12 @@ services:
     depends_on:
       - rdb
       - mock-exchange
+    network_mode: "host"
     environment:
-      - KDB_HOST=rdb
+      - KDB_HOST=127.0.0.1         # Changed from 'rdb'
       - KDB_PORT=5011
-      - EXCHANGE_HOST=mock-exchange
+      - EXCHANGE_HOST=127.0.0.1    # Changed from 'mock-exchange'
       - EXCHANGE_PORT=9876
-    networks:
-      - kdb_net
 
   dashboard:
     build: .
@@ -107,33 +91,20 @@ services:
     command: streamlit run dashboard.py --server.port 8501
     depends_on:
       - cep
-    ports:
-      - "8501:8501"
+    network_mode: "host"
     environment:
-      - CEP_HOST=cep
-    networks:
-      - kdb_net
+      - CEP_HOST=127.0.0.1         # Changed from 'cep'
 
   prometheus:
     image: prom/prometheus
     container_name: kdb_prometheus
+    network_mode: "host"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
-    networks:
-      - kdb_net
 
   grafana:
     image: grafana/grafana
     container_name: kdb_grafana
-    ports:
-      - "3000:3000"
+    network_mode: "host"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
-    networks:
-      - kdb_net
-
-networks:
-  kdb_net:
-    driver: bridge
